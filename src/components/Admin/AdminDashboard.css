@@ -1,0 +1,303 @@
+/* ==========================================================================
+   Karkai Admin Console Dashboard Stylesheet
+   Executive Dark Charcoal & Heritage Navy Palette
+   Zero Emojis • Responsive Shell • PWA Mobile-First
+   ========================================================================== */
+
+:root {
+  --admin-primary: #0f172a;
+  --admin-accent: #b45309;
+  --admin-surface: #ffffff;
+  --admin-border: #e2e8f0;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.admin-dashboard-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #0f172a;
+  display: flex;
+  justify-content: center;
+  color: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+.admin-mobile-shell {
+  width: 100%;
+  max-width: 560px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 640px) {
+  .admin-dashboard-root {
+    background: #ffffff;
+  }
+
+  .admin-mobile-shell {
+    max-width: 100%;
+    box-shadow: none;
+  }
+}
+
+/* ==========================================================================
+   Top Header Bar
+   ========================================================================== */
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--admin-border);
+  padding: 8px 16px;
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.admin-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-topbar-logo {
+  height: 52px;
+  max-height: 56px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+  display: block;
+}
+
+@media (max-width: 480px) {
+  .admin-topbar-logo {
+    height: 44px;
+    max-width: 135px;
+  }
+}
+
+.admin-console-pill {
+  font-size: 11px;
+  font-weight: 750;
+  padding: 3px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  background: #0f172a;
+  color: #ffffff;
+  border: 1px solid #0f172a;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-status-badge {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (max-width: 420px) {
+  .admin-status-badge {
+    display: none;
+  }
+}
+
+.admin-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-exit-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 650;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.admin-exit-btn:hover {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+/* ==========================================================================
+   Main Content Area
+   ========================================================================== */
+.admin-main-content {
+  flex: 1;
+  padding: 16px 16px calc(76px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Centered single line tabs */
+.tab-single-line-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: calc(100vh - 180px);
+  min-height: calc(100dvh - 180px);
+  padding: 32px 24px;
+  animation: adminFadeIn 0.25s ease-out;
+}
+
+.tab-center-icon-box {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.tab-center-title {
+  font-size: 21px;
+  font-weight: 750;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.tab-center-line {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 450;
+  max-width: 340px;
+  line-height: 1.55;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   Bottom Navigation Tab Bar (4 Tabs)
+   ========================================================================== */
+.admin-bottom-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 560px;
+  height: 64px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(226, 232, 240, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 4px;
+  padding-bottom: var(--safe-bottom);
+  z-index: 999;
+  box-shadow: 0 -4px 18px rgba(15, 23, 42, 0.07);
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .admin-bottom-tabbar {
+    left: 0;
+    transform: none;
+    max-width: 100%;
+  }
+}
+
+.admin-bottom-tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  color: #64748b;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.admin-bottom-tab-item:active {
+  transform: scale(0.92);
+}
+
+.admin-bottom-tab-icon {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: transform 0.2s ease;
+}
+
+.admin-bottom-tab-item.active .admin-bottom-tab-icon {
+  transform: translateY(-2px);
+}
+
+.admin-bottom-tab-label {
+  font-size: 10.5px;
+  font-weight: 550;
+  transition: all 0.2s ease;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.admin-bottom-tab-item.active {
+  color: #0f172a;
+}
+
+.admin-bottom-tab-item.active .admin-bottom-tab-label {
+  font-weight: 750;
+  color: #0f172a;
+}
+
+@keyframes adminFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

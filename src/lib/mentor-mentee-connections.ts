@@ -1,0 +1,261 @@
+import { supabase, isSupabaseConfigured } from './supabase'
+import type { StudentProfileData } from '../components/Students-Onboarding'
+import type { MentorProfileData } from './Mentors-details'
+import type { UserProfile } from '../components/SignIn-Screen'
+
+export const CONNECTIONS_TABLE_NAME = 'mentor-mentee-connections'
+export const CONNECTIONS_CACHE_KEY = 'karkai_mentor_mentee_connections'
+
+export type ConnectionStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface MentorMenteeConnection {
+  id: string
+  mentor_name: string
+  student_name: string
+  status: ConnectionStatus
+  rejection_reason?: string | null
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * SQL Schema for Supabase SQL Editor
+ * -- Run this once in your Supabase project → SQL Editor
+ *
+ * CREATE TABLE IF NOT EXISTS "mentor-mentee-connections" (
+ *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+ *   mentor_name TEXT NOT NULL,
+ *   student_name TEXT NOT NULL,
+ *   status TEXT NOT NULL DEFAULT 'pending',
+ *   rejection_reason TEXT,
+ *   created_at TIMESTAMPTZ DEFAULT NOW(),
+ *   updated_at TIMESTAMPTZ DEFAULT NOW()
+ * );
+ */
+
+// ---------------------------------------------------------------------------
+// Local-storage cache helpers
+// ---------------------------------------------------------------------------
+
+function getCachedConnections(): MentorMenteeConnection[] {
+  try {
+    const raw = localStorage.getItem(CONNECTIONS_CACHE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveCachedConnections(list: MentorMenteeConnection[]): void {
+  try {
+    localStorage.setItem(CONNECTIONS_CACHE_KEY, JSON.stringify(list))
+  } catch {
+    // ignore storage errors
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Send / Re-send a mentorship request
+// ---------------------------------------------------------------------------
+
+export async function sendMentorshipRequest(
+  mentor: MentorProfileData,
+  studentData: StudentProfileData | null,
+  studentUser: UserProfile | null
+): Promise<{ success: boolean; connection?: MentorMenteeConnection; error?: string }> {
+  const mentorName = mentor.fullName
+  const studentName = studentData?.fullName || studentUser?.name || 'Student Learner'
+  const now = new Date().toISOString()
+
+  // 1. Check local cache — if exists, reset to pending
+  const cachedList = getCachedConnections()
+  const existingIdx = cachedList.findIndex(
+    (c) =>
+      c.mentor_name?.toLowerCase() === mentorName.toLowerCase() &&
+      c.student_name?.toLowerCase() === studentName.toLowerCase()
+  )
+
+  const connectionId =
+    existingIdx >= 0
+      ? cachedList[existingIdx].id
+      : `conn-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`
+
+  const connectionRecord: MentorMenteeConnection = {
+    id: connectionId,
+    mentor_name: mentorName,
+    student_name: studentName,
+    status: 'pending',
+    rejection_reason: null,
+    created_at: existingIdx >= 0 ? cachedList[existingIdx].created_at : now,
+    updated_at: now,
+  }
+
+  if (existingIdx >= 0) {
+    cachedList[existingIdx] = connectionRecord
+  } else {
+    cachedList.unshift(connectionRecord)
+  }
+  saveCachedConnections(cachedList)
+
+  // 2. Persist to Supabase
+  if (supabase && isSupabaseConfigured) {
+    try {
+      const { data: existing } = await supabase
+        .from(CONNECTIONS_TABLE_NAME)
+        .select('id')
+        .eq('mentor_name', mentorName)
+        .eq('student_name', studentName)
+        .maybeSingle()
+
+      if (existing) {
+        // Already exists — reset to pending
+        const { data: updated } = await supabase
+          .from(CONNECTIONS_TABLE_NAME)
+          .update({ status: 'pending', rejection_reason: null, updated_at: now })
+          .eq('id', existing.id)
+          .select()
+          .maybeSingle()
+
+        if (updated) return { success: true, connection: updated as MentorMenteeConnection }
+      } else {
+        // New request
+        const { data: inserted } = await supabase
+          .from(CONNECTIONS_TABLE_NAME)
+          .insert([{
+            mentor_name: mentorName,
+            student_name: studentName,
+            status: 'pending',
+            rejection_reason: null,
+            created_at: now,
+            updated_at: now,
+          }])
+          .select()
+          .maybeSingle()
+
+        if (inserted) {
+          // Sync real UUID back to cache
+          const updatedCache = getCachedConnections().map((c) =>
+            c.id === connectionId ? { ...c, id: inserted.id } : c
+          )
+          saveCachedConnections(updatedCache)
+          return { success: true, connection: inserted as MentorMenteeConnection }
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase write failed, using local cache:', err)
+    }
+  }
+
+  return { success: true, connection: connectionRecord }
+}
+
+// ---------------------------------------------------------------------------
+// Get all requests for a mentor (by name)
+// ---------------------------------------------------------------------------
+
+export async function getMentorRequests(mentorIdentifier: {
+  id?: string
+  userId?: string
+  email?: string
+  fullName?: string
+}): Promise<MentorMenteeConnection[]> {
+  const mentorName = mentorIdentifier.fullName
+
+  if (!mentorName) return []
+
+  // 1. Try Supabase
+  if (supabase && isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from(CONNECTIONS_TABLE_NAME)
+        .select('*')
+        .eq('mentor_name', mentorName)
+        .order('created_at', { ascending: false })
+
+      if (!error && Array.isArray(data)) {
+        return data as MentorMenteeConnection[]
+      }
+    } catch (err) {
+      console.warn('Error fetching mentor requests from Supabase:', err)
+    }
+  }
+
+  // 2. Cache fallback
+  return getCachedConnections().filter(
+    (c) => c.mentor_name?.toLowerCase() === mentorName.toLowerCase()
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Get all requests sent by a student (by name)
+// ---------------------------------------------------------------------------
+
+export async function getStudentRequests(studentIdentifier: {
+  id?: string
+  email?: string
+  fullName?: string
+}): Promise<MentorMenteeConnection[]> {
+  const studentName = studentIdentifier.fullName
+
+  if (!studentName) return []
+
+  // 1. Try Supabase
+  if (supabase && isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from(CONNECTIONS_TABLE_NAME)
+        .select('*')
+        .eq('student_name', studentName)
+        .order('created_at', { ascending: false })
+
+      if (!error && Array.isArray(data)) {
+        return data as MentorMenteeConnection[]
+      }
+    } catch (err) {
+      console.warn('Error fetching student requests from Supabase:', err)
+    }
+  }
+
+  // 2. Cache fallback
+  return getCachedConnections().filter(
+    (c) => c.student_name?.toLowerCase() === studentName.toLowerCase()
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Update connection status (accept / reject with reason)
+// ---------------------------------------------------------------------------
+
+export async function updateConnectionStatus(
+  connectionId: string,
+  status: ConnectionStatus,
+  rejectionReason?: string | null
+): Promise<{ success: boolean; error?: string }> {
+  const now = new Date().toISOString()
+  const resolvedReason = status === 'rejected' ? (rejectionReason || 'Mentor is currently at capacity.') : null
+
+  // 1. Update local cache
+  const cachedList = getCachedConnections()
+  const idx = cachedList.findIndex((c) => c.id === connectionId)
+  if (idx >= 0) {
+    cachedList[idx] = { ...cachedList[idx], status, rejection_reason: resolvedReason, updated_at: now }
+    saveCachedConnections(cachedList)
+  }
+
+  // 2. Update Supabase
+  if (supabase && isSupabaseConfigured) {
+    try {
+      const { error } = await supabase
+        .from(CONNECTIONS_TABLE_NAME)
+        .update({ status, rejection_reason: resolvedReason, updated_at: now })
+        .eq('id', connectionId)
+
+      if (error) console.warn('Error updating connection status in Supabase:', error.message)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return { success: false, error: msg }
+    }
+  }
+
+  return { success: true }
+}

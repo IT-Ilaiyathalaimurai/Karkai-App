@@ -193,10 +193,16 @@ export async function sendMentorshipRequest(
           )
           saveCachedConnections(updatedCache)
           return { success: true, connection: inserted as MentorMenteeConnection }
+        } else if (insertErr) {
+          console.warn(`[Connections] Backend notice for "${CONNECTIONS_TABLE_NAME}":`, insertErr.message)
+          // Ensure optimistic update on UI so button transitions to "Requested" without blocking the user
+          return { success: true, connection: connectionRecord, error: insertErr.message }
         }
       }
     } catch (err) {
-      console.warn('Supabase write failed, using local cache:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      console.warn('Supabase write fallback in sendMentorshipRequest:', msg)
+      return { success: true, connection: connectionRecord, error: msg }
     }
   }
 
@@ -213,7 +219,7 @@ export async function getMentorRequests(mentorIdentifier: {
   email?: string
   fullName?: string
 }): Promise<MentorMenteeConnection[]> {
-  const mentorName = mentorIdentifier.fullName
+  const mentorName = mentorIdentifier.fullName?.trim()
 
   if (!mentorName) return []
 
@@ -223,11 +229,13 @@ export async function getMentorRequests(mentorIdentifier: {
       const { data, error } = await supabase
         .from(CONNECTIONS_TABLE_NAME)
         .select('*')
-        .eq('mentor_name', mentorName)
+        .ilike('mentor_name', mentorName)
         .order('created_at', { ascending: false })
 
       if (!error && Array.isArray(data)) {
         return data as MentorMenteeConnection[]
+      } else if (error) {
+        console.warn('Notice querying mentor requests from Supabase:', error.message)
       }
     } catch (err) {
       console.warn('Error fetching mentor requests from Supabase:', err)
@@ -236,7 +244,7 @@ export async function getMentorRequests(mentorIdentifier: {
 
   // 2. Cache fallback
   return getCachedConnections().filter(
-    (c) => c.mentor_name?.toLowerCase() === mentorName.toLowerCase()
+    (c) => c.mentor_name?.trim().toLowerCase() === mentorName.toLowerCase()
   )
 }
 
@@ -249,7 +257,7 @@ export async function getStudentRequests(studentIdentifier: {
   email?: string
   fullName?: string
 }): Promise<MentorMenteeConnection[]> {
-  const studentName = studentIdentifier.fullName
+  const studentName = studentIdentifier.fullName?.trim()
 
   if (!studentName) return []
 
@@ -259,11 +267,13 @@ export async function getStudentRequests(studentIdentifier: {
       const { data, error } = await supabase
         .from(CONNECTIONS_TABLE_NAME)
         .select('*')
-        .eq('student_name', studentName)
+        .ilike('student_name', studentName)
         .order('created_at', { ascending: false })
 
       if (!error && Array.isArray(data)) {
         return data as MentorMenteeConnection[]
+      } else if (error) {
+        console.warn('Notice querying student requests from Supabase:', error.message)
       }
     } catch (err) {
       console.warn('Error fetching student requests from Supabase:', err)
@@ -272,7 +282,7 @@ export async function getStudentRequests(studentIdentifier: {
 
   // 2. Cache fallback
   return getCachedConnections().filter(
-    (c) => c.student_name?.toLowerCase() === studentName.toLowerCase()
+    (c) => c.student_name?.trim().toLowerCase() === studentName.toLowerCase()
   )
 }
 

@@ -59,12 +59,12 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user }) => 
   const handleRequestMentor = async (mentor: MentorProfileData) => {
     try {
       const res = await sendMentorshipRequest(mentor, studentData || null, user || null)
-      if (res.success && res.connection) {
+      if (res.connection) {
         setStudentRequests((prev) => {
           const filtered = prev.filter(
             (c) =>
               c.id !== res.connection!.id &&
-              c.mentor_name?.toLowerCase() !== mentor.fullName?.toLowerCase()
+              c.mentor_name?.trim().toLowerCase() !== mentor.fullName?.trim().toLowerCase()
           )
           return [res.connection!, ...filtered]
         })

@@ -207,6 +207,14 @@ export function clearCachedMentorProfile(userIdentifier?: string): void {
 }
 
 /**
+ * Helper to check if a string is a valid UUID
+ */
+function isValidUuid(val?: string | null): boolean {
+  if (!val) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim())
+}
+
+/**
  * Save mentor details to Supabase backend and update users role
  */
 export async function saveMentorDetails(
@@ -231,35 +239,65 @@ export async function saveMentorDetails(
     const isVerified = data.isVerified ?? false
     const verificationStatus = data.verificationStatus || (isVerified ? 'approved' : 'pending')
     const rejectionReason = data.rejectionReason || null
+    const validUserId = isValidUuid(targetUserId) ? targetUserId : undefined
 
-    const payload: MentorDetailsPayload = {
-      user_id: targetUserId,
-      full_name: data.fullName,
-      phone_number: data.phoneNumber,
-      country_code: data.countryCode,
-      working_as: data.workingAs,
-      working_in: data.workingIn,
-      city: data.city,
-      region: data.region,
-      technical_skills: data.technicalSkills,
-      soft_skills: data.softSkills,
-      bio: data.bio,
-      linkedin_url: data.linkedinUrl,
-      id_card_url: data.idCardPhotoUrl,
-      id_card_file_name: data.idCardFileName,
-      resume_url: data.resumeUrl,
-      resume_file_name: data.resumeFileName,
+    // 1. Ensure 'users' role is updated to 'mentor' BEFORE inserting into 'Mentor-details'
+    // (This satisfies the foreign key constraint: Mentor-details_user_id_fkey)
+    if (validUserId) {
+      try {
+        await supabase
+          .from('users')
+          .upsert(
+            {
+              id: validUserId,
+              name: data.fullName,
+              role: 'mentor',
+              email: userEmail || data.email || null,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'id' }
+          )
+      } catch (err) {
+        console.warn('Notice updating user record in users table:', err)
+      }
+    }
+
+    // 2. Sanitize raw snapshot to avoid duplicating gigantic base64 strings in jsonb
+    const sanitizedRaw = {
+      ...data,
+      idCardPhotoUrl: data.idCardPhotoUrl?.startsWith('data:') ? '[stored-in-db-column]' : data.idCardPhotoUrl,
+      resumeUrl: data.resumeUrl?.startsWith('data:') ? '[stored-in-db-column]' : data.resumeUrl,
+      isVerified,
+      verificationStatus,
+      rejectionReason,
+      email: userEmail || data.email || null,
+      completed_at: new Date().toISOString(),
+    }
+
+    // 3. Fallback for non-null constraint columns: id_card_url & resume_url
+    const safeIdCardUrl = data.idCardPhotoUrl || 'pending-document-upload'
+    const safeResumeUrl = data.resumeUrl || 'pending-document-upload'
+
+    // 4. Construct base database payload matching known columns
+    const basePayload: Record<string, any> = {
+      ...(validUserId ? { user_id: validUserId } : {}),
+      full_name: data.fullName.trim(),
+      phone_number: data.phoneNumber.trim(),
+      country_code: data.countryCode || '+91',
+      working_as: data.workingAs.trim(),
+      working_in: data.workingIn.trim(),
+      city: data.city.trim(),
+      region: data.region.trim(),
+      technical_skills: data.technicalSkills || [],
+      soft_skills: data.softSkills || [],
+      bio: data.bio || '',
+      linkedin_url: data.linkedinUrl || '',
+      id_card_url: safeIdCardUrl,
+      id_card_file_name: data.idCardFileName || null,
+      resume_url: safeResumeUrl,
+      resume_file_name: data.resumeFileName || null,
       is_verified: isVerified,
-      verification_status: verificationStatus,
-      rejection_reason: rejectionReason,
-      reviewed_at: data.reviewedAt || null,
-      raw_data: {
-        ...data,
-        isVerified,
-        verificationStatus,
-        rejectionReason,
-        completed_at: new Date().toISOString(),
-      },
+      raw_data: sanitizedRaw,
       updated_at: new Date().toISOString(),
     }
 
@@ -267,45 +305,75 @@ export async function saveMentorDetails(
     upsertMentorToAllCache({
       ...data,
       userId: targetUserId,
-      email: userEmail,
+      email: userEmail || data.email,
       isVerified,
       verificationStatus,
       rejectionReason,
     })
 
-    // Attempt saving to 'Mentor-details'
-    const { data: inserted, error } = await supabase
-      .from(MENTOR_TABLE_NAME)
-      .upsert(payload, { onConflict: 'user_id' })
-      .select()
-      .maybeSingle()
+    // 5. Attempt saving to 'Mentor-details'
+    let insertedRow: any = null
+    let saveError: any = null
 
-    if (error) {
-      console.warn(`Notice inserting to "${MENTOR_TABLE_NAME}":`, error.message)
-      // If table doesn't exist yet, we still record role in 'users'
-    }
-
-    // Ensure 'users' role is updated to 'mentor'
-    if (targetUserId) {
-      try {
-        await supabase
-          .from('users')
-          .upsert(
-            {
-              id: targetUserId,
-              name: data.fullName,
-              role: 'mentor',
-              email: userEmail || null,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'id' }
-          )
-      } catch (err) {
-        console.warn('Notice updating user record:', err)
+    // Attempt 1: Try upsert with user_id if valid
+    if (validUserId) {
+      const res = await supabase
+        .from(MENTOR_TABLE_NAME)
+        .upsert(basePayload, { onConflict: 'user_id' })
+        .select()
+        .maybeSingle()
+      
+      if (!res.error && res.data) {
+        insertedRow = res.data
+      } else {
+        saveError = res.error
+        console.warn(`Upsert to "${MENTOR_TABLE_NAME}" with user_id failed:`, res.error?.message)
       }
     }
 
-    return { success: true, data: inserted || payload }
+    // Attempt 2: If upsert failed or no user_id, try direct insert
+    if (!insertedRow) {
+      const res = await supabase
+        .from(MENTOR_TABLE_NAME)
+        .insert([basePayload])
+        .select()
+        .maybeSingle()
+
+      if (!res.error && res.data) {
+        insertedRow = res.data
+        saveError = null
+      } else {
+        saveError = res.error
+        console.warn(`Insert to "${MENTOR_TABLE_NAME}" failed:`, res.error?.message)
+      }
+    }
+
+    // Attempt 3: If failed due to foreign key constraint (user_id not in users), try without user_id
+    if (!insertedRow && saveError && (saveError.code === '23503' || saveError.message?.includes('foreign key'))) {
+      console.warn('Retrying insert to "Mentor-details" without user_id foreign key constraint...')
+      const fallbackPayload = { ...basePayload }
+      delete fallbackPayload.user_id
+
+      const res = await supabase
+        .from(MENTOR_TABLE_NAME)
+        .insert([fallbackPayload])
+        .select()
+        .maybeSingle()
+
+      if (!res.error && res.data) {
+        insertedRow = res.data
+        saveError = null
+      } else {
+        saveError = res.error
+      }
+    }
+
+    if (saveError && !insertedRow) {
+      console.error(`Final error saving to "${MENTOR_TABLE_NAME}":`, saveError)
+      return { success: false, error: saveError.message || 'Database error saving mentor profile', data: basePayload }
+    }
+
+    return { success: true, data: insertedRow || basePayload }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error saving mentor profile'
     console.error('Error saving mentor profile:', msg)
@@ -340,11 +408,25 @@ export async function getMentorDetails(
       if (userRec?.id) targetId = userRec.id
     }
 
-    if (targetId) {
+    // 1. Try finding by user_id
+    if (targetId && isValidUuid(targetId)) {
       const { data, error } = await supabase
         .from(MENTOR_TABLE_NAME)
         .select('*')
         .eq('user_id', targetId)
+        .maybeSingle()
+
+      if (!error && data) return data as MentorDetailsPayload
+    }
+
+    // 2. Try finding by email in raw_data if not found by user_id
+    if (userEmail) {
+      const { data, error } = await supabase
+        .from(MENTOR_TABLE_NAME)
+        .select('*')
+        .contains('raw_data', { email: userEmail })
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
 
       if (!error && data) return data as MentorDetailsPayload
@@ -544,11 +626,13 @@ export async function updateMentorVerification(
       let targetRowId: string | null = null
       let existingRawData: Record<string, any> = {}
 
-      const { data: matchedRows } = await supabase
-        .from(MENTOR_TABLE_NAME)
-        .select('*')
-        .or(`id.eq.${identifier},user_id.eq.${identifier},full_name.eq.${identifier}`)
-        .limit(1)
+      let matchQuery = supabase.from(MENTOR_TABLE_NAME).select('*')
+      if (isValidUuid(identifier)) {
+        matchQuery = matchQuery.or(`id.eq.${identifier},user_id.eq.${identifier}`)
+      } else {
+        matchQuery = matchQuery.eq('full_name', identifier)
+      }
+      const { data: matchedRows } = await matchQuery.limit(1)
 
       if (matchedRows && matchedRows.length > 0) {
         targetRowId = matchedRows[0].id

@@ -350,7 +350,10 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
       }
 
       // 3. Save to backend and local storage cache
-      await saveMentorDetails(mentorProfile, user?.id, user?.email)
+      const saveRes = await saveMentorDetails(mentorProfile, user?.id, user?.email)
+      if (!saveRes.success) {
+        throw new Error(saveRes.error || 'Failed to persist mentor profile in database.')
+      }
 
       setSuccessNotice('Mentor profile successfully registered!')
       setTimeout(() => {
@@ -358,6 +361,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
       }, 700)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error saving mentor profile.'
+      console.error('Onboarding save error:', err)
       setErrorMessage(msg)
     } finally {
       setIsLoading(false)

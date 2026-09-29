@@ -10,6 +10,8 @@ export type ConnectionStatus = 'pending' | 'accepted' | 'rejected'
 
 export interface MentorMenteeConnection {
   id: string
+  user_id?: string | null
+  mentor_user_id?: string | null
   mentor_name: string
   student_name: string
   status: ConnectionStatus
@@ -22,15 +24,9 @@ export interface MentorMenteeConnection {
  * SQL Schema for Supabase SQL Editor
  * -- Run this once in your Supabase project → SQL Editor
  *
- * CREATE TABLE IF NOT EXISTS "mentor-mentee-connections" (
- *   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
- *   mentor_name TEXT NOT NULL,
- *   student_name TEXT NOT NULL,
- *   status TEXT NOT NULL DEFAULT 'pending',
- *   rejection_reason TEXT,
- *   created_at TIMESTAMPTZ DEFAULT NOW(),
- *   updated_at TIMESTAMPTZ DEFAULT NOW()
- * );
+ * ALTER TABLE public."mentor-mentee-connections"
+ *   ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+ *   ADD COLUMN IF NOT EXISTS mentor_user_id UUID REFERENCES public.users(id) ON DELETE CASCADE;
  */
 
 // ---------------------------------------------------------------------------
@@ -80,8 +76,22 @@ export async function sendMentorshipRequest(
       ? cachedList[existingIdx].id
       : `conn-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`
 
+  // Determine user IDs for foreign key cascading deletion
+  let studentUserId = studentUser?.id || (studentData as any)?.userId || (studentData as any)?.user_id
+  if (!studentUserId && supabase && isSupabaseConfigured) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      studentUserId = sessionData.session?.user?.id
+    } catch {
+      // ignore session read errors
+    }
+  }
+  const mentorUserId = mentor.userId
+
   const connectionRecord: MentorMenteeConnection = {
     id: connectionId,
+    user_id: studentUserId || null,
+    mentor_user_id: mentorUserId || null,
     mentor_name: mentorName,
     student_name: studentName,
     status: 'pending',
@@ -107,30 +117,74 @@ export async function sendMentorshipRequest(
         .eq('student_name', studentName)
         .maybeSingle()
 
+      const payloadWithUserIds: Record<string, any> = {
+        mentor_name: mentorName,
+        student_name: studentName,
+        status: 'pending',
+        rejection_reason: null,
+        updated_at: now,
+        ...(studentUserId ? { user_id: studentUserId } : {}),
+        ...(mentorUserId ? { mentor_user_id: mentorUserId } : {}),
+      }
+
       if (existing) {
         // Already exists — reset to pending
-        const { data: updated } = await supabase
+        let { data: updated, error: updateErr } = await supabase
           .from(CONNECTIONS_TABLE_NAME)
-          .update({ status: 'pending', rejection_reason: null, updated_at: now })
+          .update(payloadWithUserIds)
           .eq('id', existing.id)
           .select()
           .maybeSingle()
 
+        // Fallback if user_id / mentor_user_id columns not yet added to table
+        if (updateErr && (updateErr.message?.includes('user_id') || updateErr.code === 'PGRST204')) {
+          const fallbackPayload = {
+            mentor_name: mentorName,
+            student_name: studentName,
+            status: 'pending',
+            rejection_reason: null,
+            updated_at: now,
+          }
+          const retryRes = await supabase
+            .from(CONNECTIONS_TABLE_NAME)
+            .update(fallbackPayload)
+            .eq('id', existing.id)
+            .select()
+            .maybeSingle()
+          updated = retryRes.data
+        }
+
         if (updated) return { success: true, connection: updated as MentorMenteeConnection }
       } else {
         // New request
-        const { data: inserted } = await supabase
+        const newPayload = {
+          ...payloadWithUserIds,
+          created_at: now,
+        }
+
+        let { data: inserted, error: insertErr } = await supabase
           .from(CONNECTIONS_TABLE_NAME)
-          .insert([{
+          .insert([newPayload])
+          .select()
+          .maybeSingle()
+
+        // Fallback if user_id / mentor_user_id columns not yet added to table
+        if (insertErr && (insertErr.message?.includes('user_id') || insertErr.code === 'PGRST204')) {
+          const fallbackPayload = {
             mentor_name: mentorName,
             student_name: studentName,
             status: 'pending',
             rejection_reason: null,
             created_at: now,
             updated_at: now,
-          }])
-          .select()
-          .maybeSingle()
+          }
+          const retryRes = await supabase
+            .from(CONNECTIONS_TABLE_NAME)
+            .insert([fallbackPayload])
+            .select()
+            .maybeSingle()
+          inserted = retryRes.data
+        }
 
         if (inserted) {
           // Sync real UUID back to cache

@@ -192,6 +192,8 @@ CREATE TABLE IF NOT EXISTS public."Mentor-details" (
 -- 5. Mentor-Mentee Connections Table
 CREATE TABLE IF NOT EXISTS public."mentor-mentee-connections" (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  mentor_user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   mentor_name TEXT NOT NULL,
   student_name TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),

@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { StudentProfileData } from '../Students-Onboarding'
 import type { UserProfile } from '../SignIn-Screen'
 import karkaiLogoImg from '../../assets/Karkai_Logo.png'
 import { StudentProfileModal } from './StudentProfileModal'
 import { HomeTab, MentorsTab, InboxTasksTab, ProfileTab } from './tabs'
+import { getUnreadCounts, type AcceptedConnection } from '../../lib/direct-messages'
+import type { MentorMenteeConnection } from '../../lib/mentor-mentee-connections'
 import './StudentDashboard.css'
 
 export type DashboardTab = 'home' | 'mentors' | 'inbox-tasks' | 'profile'
@@ -23,6 +25,45 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('home')
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [activeChatConnection, setActiveChatConnection] = useState<AcceptedConnection | null>(null)
+  const [unreadTotal, setUnreadTotal] = useState<number>(0)
+
+  const currentUserId =
+    user?.id ||
+    (studentData && 'userId' in studentData ? String((studentData as Record<string, unknown>).userId) : '') ||
+    ''
+
+  useEffect(() => {
+    if (!currentUserId) return
+    const fetchUnread = async () => {
+      try {
+        const counts = await getUnreadCounts(currentUserId)
+        setUnreadTotal(counts.total)
+      } catch (e) {
+        console.warn('Failed to fetch unread message count:', e)
+      }
+    }
+    fetchUnread()
+    const interval = setInterval(fetchUnread, 15000)
+    return () => clearInterval(interval)
+  }, [currentUserId])
+
+  const handleOpenChat = (conn: MentorMenteeConnection) => {
+    const formatted: AcceptedConnection = {
+      connectionId: String(conn.id),
+      id: String(conn.id),
+      partnerId: String(conn.mentor_user_id || conn.id),
+      partnerName: String(conn.mentor_name || 'Mentor'),
+      partnerRole: 'mentor',
+      isVerifiedMentor: true,
+      partnerTitle: 'Verified Industry Mentor',
+      partnerAvatar: null,
+      status: 'accepted',
+      unreadCount: 0,
+    }
+    setActiveChatConnection(formatted)
+    setActiveTab('inbox-tasks')
+  }
 
   const isMinor = studentData?.isMinor ?? (studentData?.age ? studentData.age < 18 : false)
   const displayName = studentData?.fullName || user?.name || 'Student'
@@ -103,8 +144,20 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             ========================================================================= */}
         <main className="dashboard-main-content">
           {activeTab === 'home' && <HomeTab />}
-          {activeTab === 'mentors' && <MentorsTab studentData={studentData} user={user} />}
-          {activeTab === 'inbox-tasks' && <InboxTasksTab />}
+          {activeTab === 'mentors' && (
+            <MentorsTab
+              studentData={studentData}
+              user={user}
+              onOpenChat={handleOpenChat}
+            />
+          )}
+          {activeTab === 'inbox-tasks' && (
+            <InboxTasksTab
+              studentData={studentData}
+              user={user}
+              initialConnection={activeChatConnection}
+            />
+          )}
           {activeTab === 'profile' && (
             <ProfileTab
               studentData={studentData}
@@ -157,15 +210,40 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           <button
             type="button"
             className={`bottom-tab-item ${activeTab === 'inbox-tasks' ? 'active' : ''}`}
-            onClick={() => setActiveTab('inbox-tasks')}
+            onClick={() => {
+              setActiveTab('inbox-tasks')
+            }}
             aria-label="Inbox and Tasks Tab"
             id="student-tab-inbox-btn"
           >
-            <div className="bottom-tab-icon-wrapper">
+            <div className="bottom-tab-icon-wrapper" style={{ position: 'relative' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                 <polyline points="22,6 12,13 2,6" />
               </svg>
+              {unreadTotal > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-7px',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    minWidth: '15px',
+                    height: '15px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 3px',
+                    lineHeight: 1,
+                  }}
+                >
+                  {unreadTotal > 9 ? '9+' : unreadTotal}
+                </span>
+              )}
             </div>
             <span className="bottom-tab-label">Inbox & Tasks</span>
           </button>

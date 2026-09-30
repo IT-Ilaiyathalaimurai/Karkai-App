@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { MentorProfileData } from '../Mentors-Onboarding'
 import type { UserProfile } from '../SignIn-Screen'
 import karkaiLogoImg from '../../assets/Karkai_Logo.png'
 import { HomeTab, RequestsTab, InboxStudentTasksTab, ProfileTab } from './tabs'
 import { MentorProfileModal } from './MentorProfileModal'
+import { getUnreadCounts, type AcceptedConnection } from '../../lib/direct-messages'
+import type { MentorMenteeConnection } from '../../lib/mentor-mentee-connections'
 import './MentorDashboard.css'
 
 export type MentorDashboardTab = 'home' | 'requests' | 'inbox-tasks' | 'profile'
@@ -23,6 +25,43 @@ export const MentorDashboard: React.FC<MentorDashboardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<MentorDashboardTab>('home')
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [activeChatConnection, setActiveChatConnection] = useState<AcceptedConnection | null>(null)
+  const [unreadTotal, setUnreadTotal] = useState<number>(0)
+
+  const currentUserId = mentorData?.id || mentorData?.userId || user?.id || ''
+
+  useEffect(() => {
+    if (!currentUserId) return
+    const fetchUnread = async () => {
+      try {
+        const counts = await getUnreadCounts(currentUserId)
+        setUnreadTotal(counts.total)
+      } catch (e) {
+        console.warn('Failed to fetch unread message count for mentor:', e)
+      }
+    }
+    fetchUnread()
+    const interval = setInterval(fetchUnread, 15000)
+    return () => clearInterval(interval)
+  }, [currentUserId])
+
+  const handleOpenChat = (conn: MentorMenteeConnection) => {
+    const formatted: AcceptedConnection = {
+      connectionId: String(conn.id),
+      id: String(conn.id),
+      partnerId: String(conn.user_id || conn.id),
+      partnerName: String(conn.student_name || 'Student Learner'),
+      partnerRole: 'student',
+      partnerWing: 'Senior Wing',
+      partnerTitle: 'Senior Wing Student',
+      partnerAvatar: null,
+      partnerCompany: 'Senior Wing',
+      status: 'accepted',
+      unreadCount: 0,
+    }
+    setActiveChatConnection(formatted)
+    setActiveTab('inbox-tasks')
+  }
 
   const displayName = mentorData?.fullName || user?.name || 'Mentor'
   const initials =
@@ -135,8 +174,20 @@ export const MentorDashboard: React.FC<MentorDashboardProps> = ({
               onViewProfile={() => setActiveTab('profile')}
             />
           )}
-          {activeTab === 'requests' && <RequestsTab mentorData={mentorData} user={user} />}
-          {activeTab === 'inbox-tasks' && <InboxStudentTasksTab />}
+          {activeTab === 'requests' && (
+            <RequestsTab
+              mentorData={mentorData}
+              user={user}
+              onOpenChat={handleOpenChat}
+            />
+          )}
+          {activeTab === 'inbox-tasks' && (
+            <InboxStudentTasksTab
+              mentorData={mentorData}
+              user={user}
+              initialConnection={activeChatConnection}
+            />
+          )}
           {activeTab === 'profile' && (
             <ProfileTab
               mentorData={mentorData}
@@ -213,7 +264,7 @@ export const MentorDashboard: React.FC<MentorDashboardProps> = ({
             aria-label="Inbox and students tasks Tab"
             id="mentor-tab-inbox-btn"
           >
-            <div className="mentor-bottom-tab-icon">
+            <div className="mentor-bottom-tab-icon" style={{ position: 'relative' }}>
               <svg
                 width="20"
                 height="20"
@@ -228,6 +279,29 @@ export const MentorDashboard: React.FC<MentorDashboardProps> = ({
                 <polyline points="22,6 12,13 2,6" />
                 <path d="M8 14l2 2 4-4" />
               </svg>
+              {unreadTotal > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-7px',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    minWidth: '15px',
+                    height: '15px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 3px',
+                    lineHeight: 1,
+                  }}
+                >
+                  {unreadTotal > 9 ? '9+' : unreadTotal}
+                </span>
+              )}
             </div>
             <span className="mentor-bottom-tab-label">Inbox & Tasks</span>
           </button>

@@ -10,9 +10,10 @@ import {
 export interface RequestsTabProps {
   mentorData?: MentorProfileData | null
   user?: UserProfile | null
+  onOpenChat?: (connection: MentorMenteeConnection) => void
 }
 
-export const RequestsTab: React.FC<RequestsTabProps> = ({ mentorData, user }) => {
+export const RequestsTab: React.FC<RequestsTabProps> = ({ mentorData, user, onOpenChat }) => {
   const [requests, setRequests] = useState<MentorMenteeConnection[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [activeFilter, setActiveFilter] = useState<'pending' | 'accepted' | 'rejected' | 'all'>('pending')
@@ -310,6 +311,24 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ mentorData, user }) =>
                         <line x1="9" y1="9" x2="15" y2="15" />
                       </svg>
                       <span>Reject with Reason</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Accepted Action - Message Student */}
+                {req.status === 'accepted' && onOpenChat && (
+                  <div className="request-actions-row" style={{ marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      className="request-accept-btn"
+                      onClick={() => onOpenChat(req)}
+                      id={`chat-req-${req.id}`}
+                      style={{ background: '#2563eb' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      <span>Open Direct Chat</span>
                     </button>
                   </div>
                 )}

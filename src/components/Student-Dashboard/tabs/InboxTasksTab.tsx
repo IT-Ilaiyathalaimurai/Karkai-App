@@ -1,16 +1,61 @@
-import React from 'react'
+import React, { useState } from 'react'
+import type { StudentProfileData } from '../../Students-Onboarding'
+import type { UserProfile } from '../../SignIn-Screen'
+import { ConversationsList, DirectChat } from '../../Chat'
+import type { AcceptedConnection } from '../../../lib/direct-messages'
 
-export const InboxTasksTab: React.FC = () => {
+export interface InboxTasksTabProps {
+  studentData?: StudentProfileData | null
+  user?: UserProfile | null
+  initialConnection?: AcceptedConnection | null
+}
+
+export const InboxTasksTab: React.FC<InboxTasksTabProps> = ({
+  studentData,
+  user,
+  initialConnection = null,
+}) => {
+  const [activeConnection, setActiveConnection] = useState<AcceptedConnection | null>(initialConnection)
+  const [prevInitial, setPrevInitial] = useState<AcceptedConnection | null>(initialConnection)
+
+  if (initialConnection !== prevInitial) {
+    setPrevInitial(initialConnection)
+    setActiveConnection(initialConnection)
+  }
+
+  const currentUserId =
+    user?.id ||
+    (studentData && 'userId' in studentData ? String((studentData as Record<string, unknown>).userId) : '') ||
+    'student'
+  const currentUserName = studentData?.fullName || user?.name || 'Student Learner'
+
   return (
-    <div className="tab-single-line-center">
-      <div className="tab-center-icon-box">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-          <polyline points="22,6 12,13 2,6" />
-        </svg>
-      </div>
-      <h2 className="tab-center-title">Inbox & Tasks</h2>
-      <p className="tab-center-line">Review mentor communications and manage action items.</p>
+    <div
+      className="student-inbox-tab-wrapper"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        width: '100%',
+        backgroundColor: '#ffffff',
+        position: 'relative',
+      }}
+    >
+      {activeConnection ? (
+        <DirectChat
+          connection={activeConnection}
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          currentUserRole="student"
+          onBack={() => setActiveConnection(null)}
+        />
+      ) : (
+        <ConversationsList
+          currentUserId={currentUserId}
+          currentUserRole="student"
+          onSelectConnection={(conn) => setActiveConnection(conn)}
+        />
+      )}
     </div>
   )
 }

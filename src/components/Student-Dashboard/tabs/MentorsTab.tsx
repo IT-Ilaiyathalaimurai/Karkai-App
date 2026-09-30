@@ -14,9 +14,10 @@ import {
 export interface MentorsTabProps {
   studentData?: StudentProfileData | null
   user?: UserProfile | null
+  onOpenChat?: (conn: MentorMenteeConnection) => void
 }
 
-export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user }) => {
+export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpenChat }) => {
   const [mentors, setMentors] = useState<MentorProfileData[]>([])
   const [studentRequests, setStudentRequests] = useState<MentorMenteeConnection[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -222,13 +223,26 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user }) => 
                   </div>
 
                   {/* Footer: status + action */}
-                  <div className="my-mentor-card-footer">
+                  <div className="my-mentor-card-footer" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <span className="my-mentor-connected-chip">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                       Mentor Connected
                     </span>
+                    {onOpenChat && (
+                      <button
+                        type="button"
+                        className="my-mentor-view-btn"
+                        style={{ background: '#2563eb', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', gap: '5px' }}
+                        onClick={() => onOpenChat(conn)}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <span>Message</span>
+                      </button>
+                    )}
                     {mentor && (
                       <button
                         type="button"
@@ -379,13 +393,18 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user }) => 
                       <button
                         type="button"
                         className="mentor-request-btn accepted"
-                        disabled
-                        title="You are connected with this mentor"
+                        onClick={() => {
+                          if (onOpenChat && connection) {
+                            onOpenChat(connection)
+                          }
+                        }}
+                        style={{ cursor: onOpenChat ? 'pointer' : 'default' }}
+                        title="Open 1-on-1 Chat with mentor"
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="20 6 9 17 4 12" />
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                         </svg>
-                        <span>Connected</span>
+                        <span>Message</span>
                       </button>
                     ) : isRejected ? (
                       <button

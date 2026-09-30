@@ -2,6 +2,12 @@ import React, { useState, useRef, useEffect } from 'react'
 import './StudentOnboarding.css'
 import { extractDobFromIdCard } from '../../lib/ocr'
 import { saveStudentDetails } from '../../lib/Students-details'
+import {
+  getStudentDraft,
+  saveStudentDraft,
+  clearStudentDraft,
+  clearActiveOnboardingRole,
+} from '../../lib/onboarding-persistence'
 
 export interface ParentConsentData {
   parentName: string
@@ -456,22 +462,26 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
   onComplete,
   onBack,
 }) => {
+  const userKey = initialEmail || initialName || 'default'
+  const [initialDraft] = useState(() => getStudentDraft(userKey))
+  const [showRestoredNotice, setShowRestoredNotice] = useState(() => Boolean(initialDraft))
+
   // Current active step
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('identity')
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>(initialDraft?.currentStep || 'identity')
 
   // --- Step 1: Identity & DOB ---
-  const [fullName, setFullName] = useState(initialName)
-  const [countryCode, setCountryCode] = useState('+91')
-  const [mobileNumber, setMobileNumber] = useState('')
-  const [dateOfBirth, setDateOfBirth] = useState<string>('')
-  const [formattedDob, setFormattedDob] = useState<string>('')
+  const [fullName, setFullName] = useState(initialDraft?.fullName ?? initialName)
+  const [countryCode, setCountryCode] = useState(initialDraft?.countryCode || '+91')
+  const [mobileNumber, setMobileNumber] = useState(initialDraft?.mobileNumber || '')
+  const [dateOfBirth, setDateOfBirth] = useState<string>(initialDraft?.dateOfBirth || '')
+  const [formattedDob, setFormattedDob] = useState<string>(initialDraft?.formattedDob || '')
   const [isScanningDob, setIsScanningDob] = useState<boolean>(false)
   const [ocrProgress, setOcrProgress] = useState<number>(0)
   const [ocrStatusText, setOcrStatusText] = useState<string>('Analyzing document...')
   const [dobOcrError, setDobOcrError] = useState<string | null>(null)
-  const [idCardPhotoUrl, setIdCardPhotoUrl] = useState<string | null>(null)
-  const [idCardFileName, setIdCardFileName] = useState<string>('')
-  const [isPdf, setIsPdf] = useState(false)
+  const [idCardPhotoUrl, setIdCardPhotoUrl] = useState<string | null>(initialDraft?.idCardPhotoUrl ?? null)
+  const [idCardFileName, setIdCardFileName] = useState<string>(initialDraft?.idCardFileName || '')
+  const [isPdf, setIsPdf] = useState(initialDraft?.isPdf ?? false)
   const [isDragging, setIsDragging] = useState(false)
 
   // Derived age & minor status
@@ -479,36 +489,42 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
   const isMinor = Boolean(dateOfBirth && age < 18)
 
   // --- Step 1B: Minor Parent Consent ---
-  const [parentName, setParentName] = useState('')
-  const [parentRelationship, setParentRelationship] = useState<'father' | 'mother' | 'guardian'>('father')
-  const [parentMobile, setParentMobile] = useState('')
-  const [parentConsentGiven, setParentConsentGiven] = useState(false)
+  const [parentName, setParentName] = useState(initialDraft?.parentName || '')
+  const [parentRelationship, setParentRelationship] = useState<'father' | 'mother' | 'guardian'>(
+    initialDraft?.parentRelationship || 'father'
+  )
+  const [parentMobile, setParentMobile] = useState(initialDraft?.parentMobile || '')
+  const [parentConsentGiven, setParentConsentGiven] = useState(initialDraft?.parentConsentGiven ?? false)
 
   // --- Step 2: Personal Details (Gender, City / District) ---
-  const [gender, setGender] = useState<string>('')
-  const [city, setCity] = useState<string>('')
-  const [district, setDistrict] = useState<string>('')
-  const [stateName, setStateName] = useState<string>('')
+  const [gender, setGender] = useState<string>(initialDraft?.gender || '')
+  const [city, setCity] = useState<string>(initialDraft?.city || '')
+  const [district, setDistrict] = useState<string>(initialDraft?.district || '')
+  const [stateName, setStateName] = useState<string>(initialDraft?.stateName || '')
 
   // --- Step 2 (Senior Wing): 10th & 12th Schooling Details ---
-  const [tenthSchoolName, setTenthSchoolName] = useState('')
-  const [tenthMarks, setTenthMarks] = useState('')
-  const [tenthPercentage, setTenthPercentage] = useState('')
-  const [twelfthSchoolName, setTwelfthSchoolName] = useState('')
-  const [twelfthMarks, setTwelfthMarks] = useState('')
-  const [twelfthPercentage, setTwelfthPercentage] = useState('')
-  const [mediumOfStudy, setMediumOfStudy] = useState<'Tamil Medium' | 'English Medium' | ''>('')
+  const [tenthSchoolName, setTenthSchoolName] = useState(initialDraft?.tenthSchoolName || '')
+  const [tenthMarks, setTenthMarks] = useState(initialDraft?.tenthMarks || '')
+  const [tenthPercentage, setTenthPercentage] = useState(initialDraft?.tenthPercentage || '')
+  const [twelfthSchoolName, setTwelfthSchoolName] = useState(initialDraft?.twelfthSchoolName || '')
+  const [twelfthMarks, setTwelfthMarks] = useState(initialDraft?.twelfthMarks || '')
+  const [twelfthPercentage, setTwelfthPercentage] = useState(initialDraft?.twelfthPercentage || '')
+  const [mediumOfStudy, setMediumOfStudy] = useState<'Tamil Medium' | 'English Medium' | ''>(
+    initialDraft?.mediumOfStudy || ''
+  )
 
   // --- Step 3: Academic Info ---
-  const [institutionName, setInstitutionName] = useState('')
-  const [degree, setDegree] = useState('B.Tech')
-  const [customDegree, setCustomDegree] = useState('')
-  const [branch, setBranch] = useState('')
-  const [currentYear, setCurrentYear] = useState('1st Year')
-  const [currentCgpa, setCurrentCgpa] = useState('')
+  const [institutionName, setInstitutionName] = useState(initialDraft?.institutionName || '')
+  const [degree, setDegree] = useState(initialDraft?.degree || 'B.Tech')
+  const [customDegree, setCustomDegree] = useState(initialDraft?.customDegree || '')
+  const [branch, setBranch] = useState(initialDraft?.branch || '')
+  const [currentYear, setCurrentYear] = useState(initialDraft?.currentYear || '1st Year')
+  const [currentCgpa, setCurrentCgpa] = useState(initialDraft?.currentCgpa || '')
 
   // Automatically adapt degree and year defaults based on student age / wing
   useEffect(() => {
+    if (initialDraft && initialDraft.degree) return
+
     if (isMinor) {
       if (degree === 'B.Tech' || !degree || (!degree.includes('Tamil Nadu') && !degree.includes('CBSE'))) {
         const defaultMinorDegree = 'Tamil Nadu State Board'
@@ -539,22 +555,24 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
   }, [degree, isMinor])
 
   // --- Step 4: Skills & Soft Skills (College Students) ---
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([])
+  const [selectedSkills, setSelectedSkills] = useState<string[]>(initialDraft?.selectedSkills || [])
   const [customSkillInput, setCustomSkillInput] = useState('')
-  const [selectedSoftSkills, setSelectedSoftSkills] = useState<string[]>([])
+  const [selectedSoftSkills, setSelectedSoftSkills] = useState<string[]>(initialDraft?.selectedSoftSkills || [])
   const [customSoftSkillInput, setCustomSoftSkillInput] = useState('')
 
   // --- Step 4: Interests to Do & Extracurricular Activities (School Students) ---
-  const [learningInterests, setLearningInterests] = useState<string[]>([])
+  const [learningInterests, setLearningInterests] = useState<string[]>(initialDraft?.learningInterests || [])
   const [customInterestInput, setCustomInterestInput] = useState('')
-  const [extracurricularActivities, setExtracurricularActivities] = useState<string[]>([])
+  const [extracurricularActivities, setExtracurricularActivities] = useState<string[]>(
+    initialDraft?.extracurricularActivities || []
+  )
   const [customActivityInput, setCustomActivityInput] = useState('')
 
   // --- Step 5: Professional Links (Optional) ---
-  const [linkedinUrl, setLinkedinUrl] = useState('')
-  const [resumeFileName, setResumeFileName] = useState<string>('')
-  const [resumeFileSize, setResumeFileSize] = useState<string>('')
-  const [resumeUrl, setResumeUrl] = useState<string>('')
+  const [linkedinUrl, setLinkedinUrl] = useState(initialDraft?.linkedinUrl || '')
+  const [resumeFileName, setResumeFileName] = useState<string>(initialDraft?.resumeFileName || '')
+  const [resumeFileSize, setResumeFileSize] = useState<string>(initialDraft?.resumeFileSize || '')
+  const [resumeUrl, setResumeUrl] = useState<string>(initialDraft?.resumeUrl || '')
 
   // UI States
   const [isLoading, setIsLoading] = useState(false)
@@ -564,6 +582,135 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const resumeInputRef = useRef<HTMLInputElement>(null)
+
+  // Automatically persist draft whenever fields or steps change
+  useEffect(() => {
+    saveStudentDraft(userKey, {
+      currentStep,
+      fullName,
+      countryCode,
+      mobileNumber,
+      dateOfBirth,
+      formattedDob,
+      idCardPhotoUrl,
+      idCardFileName,
+      isPdf,
+      parentName,
+      parentRelationship,
+      parentMobile,
+      parentConsentGiven,
+      gender,
+      city,
+      district,
+      stateName,
+      tenthSchoolName,
+      tenthMarks,
+      tenthPercentage,
+      twelfthSchoolName,
+      twelfthMarks,
+      twelfthPercentage,
+      mediumOfStudy,
+      institutionName,
+      degree,
+      customDegree,
+      branch,
+      currentYear,
+      currentCgpa,
+      selectedSkills,
+      selectedSoftSkills,
+      learningInterests,
+      extracurricularActivities,
+      linkedinUrl,
+      resumeFileName,
+      resumeFileSize,
+      resumeUrl,
+    })
+  }, [
+    userKey,
+    currentStep,
+    fullName,
+    countryCode,
+    mobileNumber,
+    dateOfBirth,
+    formattedDob,
+    idCardPhotoUrl,
+    idCardFileName,
+    isPdf,
+    parentName,
+    parentRelationship,
+    parentMobile,
+    parentConsentGiven,
+    gender,
+    city,
+    district,
+    stateName,
+    tenthSchoolName,
+    tenthMarks,
+    tenthPercentage,
+    twelfthSchoolName,
+    twelfthMarks,
+    twelfthPercentage,
+    mediumOfStudy,
+    institutionName,
+    degree,
+    customDegree,
+    branch,
+    currentYear,
+    currentCgpa,
+    selectedSkills,
+    selectedSoftSkills,
+    learningInterests,
+    extracurricularActivities,
+    linkedinUrl,
+    resumeFileName,
+    resumeFileSize,
+    resumeUrl,
+  ])
+
+  const handleStartOver = () => {
+    clearStudentDraft(userKey)
+    setShowRestoredNotice(false)
+    setCurrentStep('identity')
+    setFullName(initialName)
+    setCountryCode('+91')
+    setMobileNumber('')
+    setDateOfBirth('')
+    setFormattedDob('')
+    setIdCardPhotoUrl(null)
+    setIdCardFileName('')
+    setIsPdf(false)
+    setParentName('')
+    setParentRelationship('father')
+    setParentMobile('')
+    setParentConsentGiven(false)
+    setGender('')
+    setCity('')
+    setDistrict('')
+    setStateName('')
+    setTenthSchoolName('')
+    setTenthMarks('')
+    setTenthPercentage('')
+    setTwelfthSchoolName('')
+    setTwelfthMarks('')
+    setTwelfthPercentage('')
+    setMediumOfStudy('')
+    setInstitutionName('')
+    setDegree('B.Tech')
+    setCustomDegree('')
+    setBranch('')
+    setCurrentYear('1st Year')
+    setCurrentCgpa('')
+    setSelectedSkills([])
+    setSelectedSoftSkills([])
+    setLearningInterests([])
+    setExtracurricularActivities([])
+    setLinkedinUrl('')
+    setResumeFileName('')
+    setResumeFileSize('')
+    setResumeUrl('')
+    setSuccessNotice('Draft reset. Starting fresh!')
+    setTimeout(() => setSuccessNotice(null), 3000)
+  }
 
   // -------------------------------------------------------------
   // Step 1: ID Card & OCR Handlers
@@ -1150,6 +1297,8 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
     } catch (err) {
       console.warn('Backend sync notice (Student details):', err)
     } finally {
+      clearStudentDraft(userKey)
+      clearActiveOnboardingRole(userKey)
       setIsLoading(false)
       onComplete(finalData)
     }
@@ -1261,6 +1410,44 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
             </span>
           </div>
         </nav>
+
+        {/* Resumed Draft Notice */}
+        {showRestoredNotice && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '10px',
+              color: '#166534',
+              fontSize: '0.85rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>💾</span>
+              <span><strong>Resuming draft:</strong> Continuing from where you left off.</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleStartOver}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#dc2626',
+                fontWeight: 600,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Start Fresh
+            </button>
+          </div>
+        )}
 
         {/* Stepper Progress Bar */}
         <div className="student-stepper-container">

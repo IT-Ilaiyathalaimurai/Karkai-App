@@ -14,6 +14,13 @@ import { onAuthStateChange, getSession, signOut, isSupabaseConfigured } from './
 import { saveUser, resolveUserStatus } from './lib/user'
 import { cacheStudentProfile, clearCachedStudentProfile } from './lib/Students-details'
 import { cacheMentorProfile, clearCachedMentorProfile } from './lib/Mentors-details'
+import {
+  setActiveOnboardingRole,
+  getActiveOnboardingRole,
+  clearActiveOnboardingRole,
+  clearStudentDraft,
+  clearMentorDraft,
+} from './lib/onboarding-persistence'
 import heroImg from './assets/hero.png'
 import logoImg from './assets/Karkai_Logo.png'
 import reactLogo from './assets/react.svg'
@@ -83,7 +90,17 @@ function App() {
       } else if (result.destination === 'app') {
         setCurrentView('app')
       } else {
-        setCurrentView('role-selection')
+        // Fallback: Check if user was midway in onboarding before app reload or exit
+        const pendingRole = getActiveOnboardingRole(user.id || user.email)
+        if (pendingRole === 'student') {
+          setSelectedRole('student')
+          setCurrentView('student-onboarding')
+        } else if (pendingRole === 'mentor') {
+          setSelectedRole('mentor')
+          setCurrentView('mentor-onboarding')
+        } else {
+          setCurrentView('role-selection')
+        }
       }
     } catch (err) {
       console.warn('Error resolving user destination from Supabase:', err)
@@ -155,8 +172,12 @@ function App() {
     } catch (err) {
       console.warn('Supabase sign out notice:', err)
     }
-    clearCachedStudentProfile(currentUser?.id || currentUser?.email)
-    clearCachedMentorProfile(currentUser?.id || currentUser?.email)
+    const userKey = currentUser?.id || currentUser?.email
+    clearCachedStudentProfile(userKey)
+    clearCachedMentorProfile(userKey)
+    clearActiveOnboardingRole(userKey)
+    clearStudentDraft(userKey)
+    clearMentorDraft(userKey)
     setCurrentUser(null)
     setSelectedRole(null)
     setStudentData(null)
@@ -182,6 +203,19 @@ function App() {
       return
     }
 
+    // If user was midway in onboarding before reload/exit
+    const pendingRole = getActiveOnboardingRole(currentUser.id || currentUser.email)
+    if (pendingRole === 'student' && !studentData) {
+      setSelectedRole('student')
+      setCurrentView('student-onboarding')
+      return
+    }
+    if (pendingRole === 'mentor' && !mentorData) {
+      setSelectedRole('mentor')
+      setCurrentView('mentor-onboarding')
+      return
+    }
+
     // Otherwise dynamically check Supabase database
     await checkAndNavigateUser(currentUser)
   }
@@ -193,6 +227,10 @@ function App() {
 
   const handleRoleSelected = async (role: UserRole) => {
     setSelectedRole(role)
+    const userKey = currentUser?.id || currentUser?.email
+    if (role === 'student' || role === 'mentor') {
+      setActiveOnboardingRole(userKey, role)
+    }
 
     // Persist to Supabase 'users' table
     try {
@@ -218,6 +256,9 @@ function App() {
   const handleStudentComplete = async (data: StudentProfileData) => {
     setStudentData(data)
     setSelectedRole('student')
+    const userKey = currentUser?.id || currentUser?.email
+    clearActiveOnboardingRole(userKey)
+    clearStudentDraft(userKey)
 
     if (currentUser) {
       cacheStudentProfile(data, currentUser.id || currentUser.email)
@@ -239,6 +280,9 @@ function App() {
   const handleMentorComplete = async (data: MentorProfileData) => {
     setMentorData(data)
     setSelectedRole('mentor')
+    const userKey = currentUser?.id || currentUser?.email
+    clearActiveOnboardingRole(userKey)
+    clearMentorDraft(userKey)
 
     if (currentUser) {
       cacheMentorProfile(data, currentUser.id || currentUser.email)

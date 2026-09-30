@@ -1,10 +1,16 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import type { UserProfile } from '../SignIn-Screen'
 import {
   saveMentorDetails,
   uploadMentorAsset,
   type MentorProfileData,
 } from '../../lib/Mentors-details'
+import {
+  getMentorDraft,
+  saveMentorDraft,
+  clearMentorDraft,
+  clearActiveOnboardingRole,
+} from '../../lib/onboarding-persistence'
 import './MentorOnboarding.css'
 
 export interface MentorOnboardingProps {
@@ -51,8 +57,12 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
   onBackToRoles,
   onComplete,
 }) => {
+  const userKey = user?.id || user?.email || 'default'
+  const [initialDraft] = useState(() => getMentorDraft(userKey))
+  const [showRestoredNotice, setShowRestoredNotice] = useState(() => Boolean(initialDraft))
+
   // Step state
-  const [currentStep, setCurrentStep] = useState<MentorStep>('information')
+  const [currentStep, setCurrentStep] = useState<MentorStep>(initialDraft?.currentStep || 'information')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successNotice, setSuccessNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -60,34 +70,34 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
   // ---------------------------------------------------------------------------
   // STEP 1: YOUR INFORMATION
   // ---------------------------------------------------------------------------
-  const [fullName, setFullName] = useState(user?.name || '')
-  const [countryCode, setCountryCode] = useState('+91')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [workingAs, setWorkingAs] = useState('')
-  const [workingIn, setWorkingIn] = useState('')
-  const [city, setCity] = useState('')
-  const [region, setRegion] = useState('Tamil Nadu')
+  const [fullName, setFullName] = useState(initialDraft?.fullName || user?.name || '')
+  const [countryCode, setCountryCode] = useState(initialDraft?.countryCode || '+91')
+  const [phoneNumber, setPhoneNumber] = useState(initialDraft?.phoneNumber || '')
+  const [workingAs, setWorkingAs] = useState(initialDraft?.workingAs || '')
+  const [workingIn, setWorkingIn] = useState(initialDraft?.workingIn || '')
+  const [city, setCity] = useState(initialDraft?.city || '')
+  const [region, setRegion] = useState(initialDraft?.region || 'Tamil Nadu')
 
   // ---------------------------------------------------------------------------
   // STEP 2: TECHNICAL SKILLS, SOFT SKILLS & BIO
   // ---------------------------------------------------------------------------
-  const [selectedTechSkills, setSelectedTechSkills] = useState<string[]>([])
+  const [selectedTechSkills, setSelectedTechSkills] = useState<string[]>(initialDraft?.selectedTechSkills || [])
   const [customTechInput, setCustomTechInput] = useState('')
-  const [selectedSoftSkills, setSelectedSoftSkills] = useState<string[]>([])
+  const [selectedSoftSkills, setSelectedSoftSkills] = useState<string[]>(initialDraft?.selectedSoftSkills || [])
   const [customSoftInput, setCustomSoftInput] = useState('')
-  const [bio, setBio] = useState('')
+  const [bio, setBio] = useState(initialDraft?.bio || '')
 
   // ---------------------------------------------------------------------------
   // STEP 3: DOCUMENTS UPLOAD (ALL MANDATORY)
   // ---------------------------------------------------------------------------
-  const [linkedinUrl, setLinkedinUrl] = useState('')
-  const [idCardPhotoUrl, setIdCardPhotoUrl] = useState<string | null>(null)
-  const [idCardFileName, setIdCardFileName] = useState<string>('')
+  const [linkedinUrl, setLinkedinUrl] = useState(initialDraft?.linkedinUrl || '')
+  const [idCardPhotoUrl, setIdCardPhotoUrl] = useState<string | null>(initialDraft?.idCardPhotoUrl || null)
+  const [idCardFileName, setIdCardFileName] = useState<string>(initialDraft?.idCardFileName || '')
   const [isDraggingId, setIsDraggingId] = useState(false)
 
-  const [resumeUrl, setResumeUrl] = useState<string | null>(null)
-  const [resumeFileName, setResumeFileName] = useState<string>('')
-  const [resumeFileSize, setResumeFileSize] = useState<string>('')
+  const [resumeUrl, setResumeUrl] = useState<string | null>(initialDraft?.resumeUrl || null)
+  const [resumeFileName, setResumeFileName] = useState<string>(initialDraft?.resumeFileName || '')
+  const [resumeFileSize, setResumeFileSize] = useState<string>(initialDraft?.resumeFileSize || '')
 
   // File input refs
   const idFileInputRef = useRef<HTMLInputElement | null>(null)
@@ -96,6 +106,72 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
 
   // Determine current step index for the progress indicator
   const stepNumber = currentStep === 'information' ? 1 : currentStep === 'skills-bio' ? 2 : 3
+
+  // Automatically persist mentor draft whenever any field or step changes
+  useEffect(() => {
+    saveMentorDraft(userKey, {
+      currentStep,
+      fullName,
+      countryCode,
+      phoneNumber,
+      workingAs,
+      workingIn,
+      city,
+      region,
+      selectedTechSkills,
+      selectedSoftSkills,
+      bio,
+      linkedinUrl,
+      idCardPhotoUrl,
+      idCardFileName,
+      resumeUrl,
+      resumeFileName,
+      resumeFileSize,
+    })
+  }, [
+    userKey,
+    currentStep,
+    fullName,
+    countryCode,
+    phoneNumber,
+    workingAs,
+    workingIn,
+    city,
+    region,
+    selectedTechSkills,
+    selectedSoftSkills,
+    bio,
+    linkedinUrl,
+    idCardPhotoUrl,
+    idCardFileName,
+    resumeUrl,
+    resumeFileName,
+    resumeFileSize,
+  ])
+
+  const handleStartOver = () => {
+    clearMentorDraft(userKey)
+    setShowRestoredNotice(false)
+    setCurrentStep('information')
+    setFullName(user?.name || '')
+    setCountryCode('+91')
+    setPhoneNumber('')
+    setWorkingAs('')
+    setWorkingIn('')
+    setCity('')
+    setRegion('Tamil Nadu')
+    setSelectedTechSkills([])
+    setSelectedSoftSkills([])
+    setBio('')
+    setLinkedinUrl('')
+    setIdCardPhotoUrl(null)
+    setIdCardFileName('')
+    setResumeUrl(null)
+    setResumeFileName('')
+    setResumeFileSize('')
+    setSuccessNotice('Draft reset. Starting fresh!')
+    setTimeout(() => setSuccessNotice(null), 3000)
+  }
 
   // ---------------------------------------------------------------------------
   // STEP 1 HANDLERS
@@ -356,6 +432,8 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
       }
 
       setSuccessNotice('Mentor profile successfully registered!')
+      clearMentorDraft(userKey)
+      clearActiveOnboardingRole(userKey)
       setTimeout(() => {
         onComplete(mentorProfile)
       }, 700)
@@ -423,6 +501,44 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
             Step {stepNumber} of 3 &bull; Mentor Verification
           </span>
         </nav>
+
+        {/* Resumed Draft Notice */}
+        {showRestoredNotice && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              marginBottom: '16px',
+              backgroundColor: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '10px',
+              color: '#166534',
+              fontSize: '0.85rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>💾</span>
+              <span><strong>Resuming draft:</strong> Continuing from where you left off.</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleStartOver}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#dc2626',
+                fontWeight: 600,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              Start Fresh
+            </button>
+          </div>
+        )}
 
         {/* Multi-Step Indicator */}
         <div className="mentor-stepper-container">

@@ -6,8 +6,8 @@ import { StudentOnboarding } from './components/Students-Onboarding'
 import type { StudentProfileData } from './components/Students-Onboarding'
 import { MentorOnboarding, MentorVerificationQueued } from './components/Mentors-Onboarding'
 import type { MentorProfileData } from './components/Mentors-Onboarding'
-import { StudentDashboard } from './components/Student-Dashboard'
-import { MentorDashboard } from './components/Mentor-Dashboard'
+import { StudentDashboard, StudentEditProfile } from './components/Student-Dashboard'
+import { MentorDashboard, MentorEditProfile } from './components/Mentor-Dashboard'
 import { AdminDashboard, AdminLogin } from './components/Admin'
 import { onAuthStateChange, getSession, signOut, isSupabaseConfigured } from './lib/supabase'
 
@@ -20,7 +20,20 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import './App.css'
 
-type AppView = 'splash' | 'signin' | 'role-selection' | 'student-onboarding' | 'student-dashboard' | 'mentor-onboarding' | 'mentor-verification-queued' | 'mentor-dashboard' | 'admin-login' | 'admin-dashboard' | 'app'
+type AppView =
+  | 'splash'
+  | 'signin'
+  | 'role-selection'
+  | 'student-onboarding'
+  | 'student-edit-profile'
+  | 'student-dashboard'
+  | 'mentor-onboarding'
+  | 'mentor-edit-profile'
+  | 'mentor-verification-queued'
+  | 'mentor-dashboard'
+  | 'admin-login'
+  | 'admin-dashboard'
+  | 'app'
 
 
 
@@ -339,13 +352,41 @@ function App() {
     )
   }
 
+  if (currentView === 'student-edit-profile') {
+    return (
+      <StudentEditProfile
+        studentData={studentData}
+        user={currentUser}
+        onCancel={() => setCurrentView('student-dashboard')}
+        onSaveSuccess={(updated) => {
+          setStudentData(updated)
+          setCurrentView('student-dashboard')
+        }}
+      />
+    )
+  }
+
+  if (currentView === 'mentor-edit-profile') {
+    return (
+      <MentorEditProfile
+        mentorData={mentorData}
+        user={currentUser}
+        onCancel={() => setCurrentView('mentor-dashboard')}
+        onSaveSuccess={(updated) => {
+          setMentorData(updated)
+          setCurrentView('mentor-dashboard')
+        }}
+      />
+    )
+  }
+
   if (currentView === 'student-dashboard' || (currentView === 'app' && selectedRole === 'student')) {
     return (
       <StudentDashboard
         studentData={studentData}
         user={currentUser}
         onSignOut={handleSignOut}
-        onEditProfile={() => setCurrentView('student-onboarding')}
+        onEditProfile={() => setCurrentView('student-edit-profile')}
       />
     )
   }
@@ -356,7 +397,7 @@ function App() {
         mentorData={mentorData}
         user={currentUser}
         onSignOut={handleSignOut}
-        onEditProfile={() => setCurrentView('mentor-onboarding')}
+        onEditProfile={() => setCurrentView('mentor-edit-profile')}
       />
     )
   }

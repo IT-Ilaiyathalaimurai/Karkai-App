@@ -1,4 +1,5 @@
 export * from './MentorDashboard'
 export * from './MentorProfileModal'
+export * from './MentorEditProfile'
 export * from './tabs'
 export { default } from './MentorDashboard'

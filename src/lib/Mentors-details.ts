@@ -382,6 +382,155 @@ export async function saveMentorDetails(
 }
 
 /**
+ * Update and overwrite existing mentor profile in Supabase and local cache.
+ */
+export async function updateMentorProfile(
+  data: MentorProfileData,
+  userId?: string,
+  userEmail?: string
+): Promise<{ success: boolean; data?: MentorProfileData; error?: string }> {
+  // Always update local cache first
+  cacheMentorProfile(data, userId || userEmail)
+
+  if (!supabase || !isSupabaseConfigured) {
+    return { success: true, data }
+  }
+
+  try {
+    let targetUserId = userId || data.userId
+    if (!targetUserId) {
+      const { data: sessionData } = await supabase.auth.getSession()
+      targetUserId = sessionData.session?.user?.id
+    }
+
+    const now = new Date().toISOString()
+
+    // 1. Upload new ID card photo if it was updated as a data URL or new file
+    let uploadedIdUrl = data.idCardPhotoUrl
+    if (data.idCardPhotoUrl && data.idCardPhotoUrl.startsWith('data:')) {
+      const idName = data.idCardFileName || 'mentor-id-card.jpg'
+      const uploadRes = await uploadMentorAsset(data.idCardPhotoUrl, idName, 'id-cards')
+      if (uploadRes) uploadedIdUrl = uploadRes
+    }
+
+    // 2. Upload new resume if it was updated as a data URL or new file
+    let uploadedResumeUrl = data.resumeUrl
+    if (data.resumeUrl && data.resumeUrl.startsWith('data:')) {
+      const resumeName = data.resumeFileName || 'mentor-resume.pdf'
+      const uploadRes = await uploadMentorAsset(data.resumeUrl, resumeName, 'resumes')
+      if (uploadRes) uploadedResumeUrl = uploadRes
+    }
+
+    // If the mentor was previously rejected, updating re-submits for verification (pending)
+    const isPreviouslyRejected = data.verificationStatus === 'rejected'
+    const isVerified = isPreviouslyRejected ? false : (data.isVerified ?? false)
+    const verificationStatus: MentorVerificationStatus = isPreviouslyRejected
+      ? 'pending'
+      : (data.verificationStatus || (isVerified ? 'approved' : 'pending'))
+    const rejectionReason = isPreviouslyRejected ? null : (data.rejectionReason || null)
+
+    const sanitizedRaw = {
+      ...data,
+      idCardPhotoUrl: uploadedIdUrl?.startsWith('data:') ? '[stored-in-db-column]' : uploadedIdUrl,
+      resumeUrl: uploadedResumeUrl?.startsWith('data:') ? '[stored-in-db-column]' : uploadedResumeUrl,
+      isVerified,
+      verificationStatus,
+      rejectionReason,
+      email: userEmail || data.email || null,
+      updated_at: now,
+    }
+
+    const basePayload: Record<string, any> = {
+      full_name: data.fullName.trim(),
+      phone_number: data.phoneNumber.trim(),
+      country_code: data.countryCode || '+91',
+      working_as: data.workingAs.trim(),
+      working_in: data.workingIn.trim(),
+      city: data.city.trim(),
+      region: data.region.trim(),
+      technical_skills: data.technicalSkills || [],
+      soft_skills: data.softSkills || [],
+      bio: data.bio || '',
+      linkedin_url: data.linkedinUrl || '',
+      id_card_url: uploadedIdUrl || 'pending-document-upload',
+      id_card_file_name: data.idCardFileName || null,
+      resume_url: uploadedResumeUrl || 'pending-document-upload',
+      resume_file_name: data.resumeFileName || null,
+      is_verified: isVerified,
+      raw_data: sanitizedRaw,
+      updated_at: now,
+    }
+
+    const validUserId = isValidUuid(targetUserId) ? targetUserId : undefined
+    if (validUserId) {
+      basePayload.user_id = validUserId
+    }
+
+    // 3. Directly update existing row in 'Mentor-details'
+    let updatedRow: any = null
+    const existingId = data.id
+
+    if (existingId && isValidUuid(existingId)) {
+      const res = await supabase.from(MENTOR_TABLE_NAME).update(basePayload).eq('id', existingId).select()
+      if (!res.error && res.data && res.data.length > 0) {
+        updatedRow = res.data[0]
+      }
+    }
+
+    if (!updatedRow && validUserId) {
+      const res = await supabase.from(MENTOR_TABLE_NAME).update(basePayload).eq('user_id', validUserId).select()
+      if (!res.error && res.data && res.data.length > 0) {
+        updatedRow = res.data[0]
+      }
+    }
+
+    if (!updatedRow) {
+      const res = await supabase.from(MENTOR_TABLE_NAME).update(basePayload).eq('full_name', data.fullName).select()
+      if (!res.error && res.data && res.data.length > 0) {
+        updatedRow = res.data[0]
+      }
+    }
+
+    // If update didn't match existing, fallback to saveMentorDetails
+    if (!updatedRow) {
+      const saveRes = await saveMentorDetails({
+        ...data,
+        idCardPhotoUrl: uploadedIdUrl,
+        resumeUrl: uploadedResumeUrl,
+        isVerified,
+        verificationStatus,
+        rejectionReason,
+      }, targetUserId, userEmail)
+      return {
+        success: saveRes.success,
+        data: saveRes.data ? mapMentorPayloadToProfileData(saveRes.data) : undefined,
+        error: saveRes.error
+      }
+    }
+
+    // Update users table name
+    if (validUserId) {
+      await supabase.from('users').update({ name: data.fullName, updated_at: now }).eq('id', validUserId)
+    }
+
+    const updatedProfile: MentorProfileData = {
+      ...mapMentorPayloadToProfileData(updatedRow),
+      idCardPhotoUrl: uploadedIdUrl,
+      resumeUrl: uploadedResumeUrl,
+    }
+
+    cacheMentorProfile(updatedProfile, targetUserId || userEmail)
+    upsertMentorToAllCache(updatedProfile)
+
+    return { success: true, data: updatedProfile }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error updating mentor profile'
+    console.error('Error updating mentor profile:', msg)
+    return { success: false, error: msg }
+  }
+}
+
+/**
  * Fetch mentor details from Supabase backend
  */
 export async function getMentorDetails(

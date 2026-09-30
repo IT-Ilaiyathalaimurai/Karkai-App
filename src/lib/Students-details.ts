@@ -268,6 +268,141 @@ export async function saveStudentDetails(
 }
 
 /**
+ * Update and overwrite existing student details in Supabase and local cache.
+ */
+export async function updateStudentProfile(
+  studentData: StudentProfileData,
+  explicitUserId?: string,
+  explicitEmail?: string
+): Promise<{ success: boolean; data?: StudentProfileData; error?: string }> {
+  // Always update local cache immediately
+  cacheStudentProfile(studentData, explicitUserId || explicitEmail)
+
+  if (!supabase || !isSupabaseConfigured) {
+    return { success: true, data: studentData }
+  }
+
+  try {
+    let userId = explicitUserId
+    let userEmail = explicitEmail
+    if (!userId || !userEmail) {
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!userId) userId = sessionData.session?.user?.id
+      if (!userEmail) userEmail = sessionData.session?.user?.email
+    }
+
+    // 1. Upload new resume if it's a new data URL
+    let uploadedResumeUrl = studentData.resumeUrl
+    if (studentData.resumeUrl && studentData.resumeUrl.startsWith('data:')) {
+      const resumeName = studentData.resumeFileName || 'resume.pdf'
+      const uploadRes = await uploadAssetToStorage(studentData.resumeUrl, resumeName, 'resumes')
+      if (uploadRes) uploadedResumeUrl = uploadRes
+    }
+
+    const { idCardPhotoUrl: _discardPhoto, ...sanitizedRawData } = (studentData as Record<string, any>) || {}
+    if (userEmail) {
+      sanitizedRawData.email = userEmail
+    }
+
+    const now = new Date().toISOString()
+    const payload: Partial<StudentDetailsPayload> = {
+      ...(userId ? { user_id: userId } : {}),
+      full_name: studentData.fullName.trim(),
+      mobile_number: studentData.mobileNumber.trim(),
+      country_code: studentData.countryCode || '+91',
+      date_of_birth: studentData.dateOfBirth,
+      age: studentData.age,
+      is_minor: studentData.isMinor,
+      wing: studentData.isMinor ? 'school' : 'senior',
+      gender: studentData.gender,
+      city: studentData.city.trim(),
+      district: studentData.district.trim(),
+      state: studentData.state || null,
+
+      parent_name: studentData.parentConsent?.parentName || null,
+      parent_relationship: studentData.parentConsent?.relationship || null,
+      parent_mobile: studentData.parentConsent?.parentMobile || null,
+      parent_consent_given: studentData.parentConsent?.consentGiven ?? null,
+
+      tenth_school_name: studentData.tenthSchoolName || null,
+      tenth_marks: studentData.tenthMarks || null,
+      tenth_percentage: studentData.tenthPercentage || null,
+      twelfth_school_name: studentData.twelfthSchoolName || null,
+      twelfth_marks: studentData.twelfthMarks || null,
+      twelfth_percentage: studentData.twelfthPercentage || null,
+      medium_of_study: studentData.mediumOfStudy || null,
+
+      institution_name: studentData.institutionName.trim(),
+      degree: studentData.degree,
+      custom_degree: studentData.customDegree || null,
+      branch: studentData.branch,
+      current_year: studentData.currentYear,
+      current_cgpa: studentData.currentCgpa || null,
+
+      skills: studentData.skills || [],
+      soft_skills: studentData.softSkills || [],
+      learning_interests: studentData.learningInterests || [],
+      extracurricular_activities: studentData.extracurricularActivities || [],
+
+      linkedin_url: studentData.linkedinUrl || null,
+      resume_url: uploadedResumeUrl || null,
+      resume_file_name: studentData.resumeFileName || null,
+
+      raw_data: {
+        ...sanitizedRawData,
+        resumeUrl: uploadedResumeUrl,
+        updated_at: now,
+      },
+      updated_at: now,
+    }
+
+    // 2. Overwrite in 'Student-details' table
+    let updatedRow: any = null
+    const existingId = (studentData as any).id
+
+    if (existingId) {
+      const res = await supabase.from(STUDENT_TABLE_NAME).update(payload).eq('id', existingId).select()
+      if (!res.error && res.data && res.data.length > 0) {
+        updatedRow = res.data[0]
+      }
+    }
+
+    if (!updatedRow && userId) {
+      const res = await supabase.from(STUDENT_TABLE_NAME).update(payload).eq('user_id', userId).select()
+      if (!res.error && res.data && res.data.length > 0) {
+        updatedRow = res.data[0]
+      }
+    }
+
+    if (!updatedRow) {
+      const res = await supabase.from(STUDENT_TABLE_NAME).update(payload).eq('full_name', studentData.fullName).select()
+      if (!res.error && res.data && res.data.length > 0) {
+        updatedRow = res.data[0]
+      }
+    }
+
+    // If no row existed to update, fallback to saveStudentDetails
+    if (!updatedRow) {
+      const saveRes = await saveStudentDetails({ ...studentData, resumeUrl: uploadedResumeUrl }, userId, userEmail)
+      return { success: saveRes.success, data: saveRes.data, error: saveRes.error }
+    }
+
+    // Update users table name
+    if (userId) {
+      await supabase.from('users').update({ name: studentData.fullName, updated_at: now }).eq('id', userId)
+    }
+
+    const updatedProfile = mapStudentPayloadToProfileData(updatedRow)
+    cacheStudentProfile(updatedProfile, userId || userEmail)
+    return { success: true, data: updatedProfile }
+  } catch (err: any) {
+    const errorMsg = err?.message || String(err)
+    console.error('Error in updateStudentProfile:', errorMsg)
+    return { success: false, error: errorMsg }
+  }
+}
+
+/**
  * Convert a Supabase 'Student-details' database row into a complete StudentProfileData object.
  */
 export function mapStudentPayloadToProfileData(payload: StudentDetailsPayload): StudentProfileData {

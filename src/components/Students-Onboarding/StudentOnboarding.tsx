@@ -11,6 +11,7 @@ export interface ParentConsentData {
 }
 
 export interface StudentProfileData {
+  id?: string
   fullName: string
   mobileNumber: string
   countryCode: string

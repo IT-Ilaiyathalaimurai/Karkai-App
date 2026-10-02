@@ -143,7 +143,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
             MAIN CONTENT AREA: 4 Tabs
             ========================================================================= */}
         <main className="dashboard-main-content">
-          {activeTab === 'home' && <HomeTab />}
+          {activeTab === 'home' && <HomeTab studentData={studentData} user={user} />}
           {activeTab === 'mentors' && (
             <MentorsTab
               studentData={studentData}

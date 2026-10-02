@@ -1,0 +1,601 @@
+/* ==========================================================================
+   VoiceJournalModal — Gamified Distraction-Free Daily Task Modal
+   ========================================================================== */
+
+.vj-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: vjOverlayFadeIn 0.25s ease-out;
+}
+
+@media (min-width: 641px) {
+  .vj-modal-overlay {
+    align-items: center;
+    padding: 24px;
+  }
+}
+
+@keyframes vjOverlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.vj-modal-sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  background: #ffffff;
+  border-radius: 28px 28px 0 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+  animation: vjSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+@media (min-width: 641px) {
+  .vj-modal-sheet {
+    border-radius: 28px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@keyframes vjSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Modal Header & Step Bar */
+.vj-modal-header {
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.vj-header-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vj-quest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  border: 1px solid #bae6fd;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vj-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: none;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vj-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Duolingo style 4-step progress line */
+.vj-steps-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vj-step-pill {
+  flex: 1;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.vj-step-pill.completed {
+  background: #22c55e;
+}
+
+.vj-step-pill.active {
+  background: #0284c7;
+  box-shadow: 0 0 8px rgba(2, 132, 199, 0.4);
+}
+
+.vj-step-counter-text {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+/* Modal Body Content */
+.vj-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vj-step-heading-group {
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.vj-step-emoji {
+  font-size: 2.2rem;
+  margin-bottom: 4px;
+}
+
+.vj-step-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 850;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.vj-step-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+/* Input Styles */
+.vj-input-card {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vj-text-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 16px;
+  border-radius: 14px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.94rem;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.vj-text-input:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.vj-textarea-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-family: inherit;
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.55;
+  transition: all 0.2s ease;
+}
+
+.vj-textarea-input:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+/* Step 2 Voice Studio Stage */
+.vj-voice-stage {
+  background: linear-gradient(135deg, #090e1a 0%, #111a2e 100%);
+  border-radius: 24px;
+  padding: 24px 20px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  box-shadow: 0 10px 30px rgba(9, 14, 26, 0.35);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.vj-voice-target-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.1);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.vj-voice-target-chip.target-reached {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.vj-voice-clock {
+  font-size: 3rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.vj-voice-clock.recording {
+  color: #f87171;
+  animation: clockPulse 1.2s infinite alternate;
+}
+
+@keyframes clockPulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.02); }
+}
+
+/* Animated soundwave bars */
+.vj-soundwave-bars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 36px;
+}
+
+.vj-wave-bar {
+  width: 4px;
+  background: #f87171;
+  border-radius: 4px;
+  animation: vjWavePulse 0.9s ease-in-out infinite alternate;
+}
+
+.vj-wave-bar:nth-child(1) { height: 10px; animation-delay: 0.1s; }
+.vj-wave-bar:nth-child(2) { height: 22px; animation-delay: 0.25s; }
+.vj-wave-bar:nth-child(3) { height: 32px; animation-delay: 0.4s; }
+.vj-wave-bar:nth-child(4) { height: 18px; animation-delay: 0.15s; }
+.vj-wave-bar:nth-child(5) { height: 28px; animation-delay: 0.3s; }
+.vj-wave-bar:nth-child(6) { height: 14px; animation-delay: 0.45s; }
+.vj-wave-bar:nth-child(7) { height: 8px; animation-delay: 0.2s; }
+
+@keyframes vjWavePulse {
+  0% { transform: scaleY(0.2); }
+  100% { transform: scaleY(1); }
+}
+
+/* Big Record Orb */
+.vj-record-orb-btn {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.45);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vj-record-orb-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 10px 28px rgba(2, 132, 199, 0.6);
+}
+
+.vj-stop-orb-btn {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.5);
+  animation: vjStopPulse 1.5s infinite;
+}
+
+@keyframes vjStopPulse {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6); }
+  70% { box-shadow: 0 0 0 16px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
+.vj-studio-sub-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vj-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 750;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.vj-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.vj-audio-player-preview {
+  width: 100%;
+  max-width: 360px;
+  border-radius: 12px;
+}
+
+/* Step 3 Vocabulary Cards */
+.vj-vocab-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vj-vocab-card {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.vj-vocab-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vj-vocab-term-input {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.vj-delete-word-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.vj-delete-word-btn:hover {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.vj-add-word-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: #f0f9ff;
+  border: 1.5px dashed #0284c7;
+  color: #0284c7;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vj-add-word-btn:hover {
+  background: #e0f2fe;
+}
+
+/* Modal Bottom Navigation Actions */
+.vj-modal-footer {
+  padding: 14px 20px 18px;
+  border-top: 1px solid #f1f5f9;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vj-btn-back {
+  padding: 13px 20px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vj-btn-back:hover {
+  background: #e2e8f0;
+}
+
+.vj-btn-next {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  font-size: 0.94rem;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vj-btn-next:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
+}
+
+.vj-btn-next:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vj-btn-finish {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  color: #ffffff;
+  font-size: 0.96rem;
+  font-weight: 850;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vj-btn-finish:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.55);
+}
+
+.vj-btn-finish:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Celebration Overlay */
+.vj-celebration-overlay {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px;
+  z-index: 20;
+  animation: vjOverlayFadeIn 0.3s ease-out;
+}
+
+.vj-celebration-flame {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
+  margin-bottom: 20px;
+  animation: vjBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes vjBounce {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.vj-celebration-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.vj-celebration-desc {
+  margin: 8px 0 24px;
+  font-size: 0.94rem;
+  color: #64748b;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.vj-btn-claim {
+  padding: 13px 32px;
+  background: #22c55e;
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  font-size: 0.94rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
+  transition: all 0.2s ease;
+}
+
+.vj-btn-claim:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.45);
+}

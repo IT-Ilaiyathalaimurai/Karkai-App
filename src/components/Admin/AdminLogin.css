@@ -45,9 +45,24 @@
 }
 
 @media (max-width: 480px) {
+  .admin-login-wrapper {
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 12px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
   .admin-login-card {
-    padding: 24px 20px;
+    padding: 24px 14px;
     border-radius: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-input-control {
+    font-size: 16px !important;
+  }
+
+  .admin-submit-btn,
+  .admin-back-btn {
+    touch-action: manipulation;
   }
 }
 

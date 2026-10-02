@@ -49,10 +49,12 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: #0f172a;
+  background-color: #ffffff;
   color: var(--karkai-text-primary);
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior-y: none;
 }
 
 #root {
@@ -61,7 +63,7 @@ body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background-color: #0f172a;
+  background-color: #ffffff;
 }
 
 input,
@@ -103,4 +105,48 @@ a {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Suppress Netlify injected badge from covering navigation */
+#netlify-badge,
+.netlify-badge,
+[data-netlify-badge],
+iframe[src*="netlify"],
+div:has(> a[href*="netlify.com"]),
+a[href*="netlify.com"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ==========================================================================
+   Global Mobile Native Experience Rules (Phones <= 640px)
+   ========================================================================== */
+@media (max-width: 640px) {
+  /* 1. Prevent iOS auto-zoom on tap for ALL inputs across the whole app */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* 2. Instant tap response (removes 300ms double-tap delay on mobile) */
+button,
+a,
+input[type="button"],
+input[type="submit"],
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 3. Smooth momentum scrolling */
+.scroll-container,
+main,
+[class*="content"],
+[class*="body"],
+[class*="scroll"] {
+  -webkit-overflow-scrolling: touch;
 }

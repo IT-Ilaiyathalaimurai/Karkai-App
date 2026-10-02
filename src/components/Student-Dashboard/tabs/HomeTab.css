@@ -5,7 +5,7 @@
 .student-home-tab {
   width: 100%;
   max-width: 100%;
-  padding: 16px 16px 96px;
+  padding: 0 0 20px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -177,7 +177,7 @@
 .week-strip-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 4px;
   padding-top: 4px;
 }
 
@@ -185,12 +185,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 6px 2px;
+  gap: 4px;
+  padding: 6px 1px;
   border-radius: 12px;
   background: #f8fafc;
   border: 1px solid transparent;
   transition: all 0.2s ease;
+  min-width: 0;
 }
 
 .week-day-cell.is-today {
@@ -464,8 +465,8 @@
 }
 
 .audio-play-trigger {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #0284c7;
   color: #ffffff;
@@ -477,6 +478,7 @@
   flex-shrink: 0;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .audio-play-trigger:hover {
@@ -499,14 +501,15 @@
 .audio-slider-container {
   position: relative;
   width: 100%;
-  height: 14px;
+  height: 24px;
   display: flex;
   align-items: center;
+  touch-action: none;
 }
 
 .audio-progress-track {
   width: 100%;
-  height: 5px;
+  height: 6px;
   background: #e2e8f0;
   border-radius: 9999px;
   overflow: hidden;
@@ -710,4 +713,67 @@
   color: #334155;
   line-height: 1.45;
   margin: 0;
+}
+
+/* ==========================================================================
+   HomeTab Mobile Enhancements (Phones <= 480px)
+   ========================================================================== */
+@media (max-width: 480px) {
+  .home-header-row {
+    padding: 0 0 2px;
+  }
+
+  .home-student-name {
+    font-size: 1.15rem;
+  }
+
+  .streak-tracker-card {
+    padding: 14px 12px;
+    border-radius: 18px;
+    gap: 10px;
+  }
+
+  .streak-title-count {
+    font-size: 0.94rem;
+  }
+
+  .daily-task-hero-card {
+    padding: 16px 14px;
+    border-radius: 18px;
+    gap: 14px;
+  }
+
+  .task-hero-title {
+    font-size: 1.15rem;
+  }
+
+  .task-hero-description {
+    font-size: 0.82rem;
+  }
+
+  .btn-launch-task {
+    min-height: 48px;
+    padding: 13px 18px;
+    font-size: 0.92rem;
+  }
+
+  .completed-showcase-container {
+    padding: 16px 14px;
+    border-radius: 18px;
+    gap: 14px;
+  }
+
+  .completed-paper-heading {
+    font-size: 1.05rem;
+  }
+
+  .btn-secondary-record {
+    min-height: 44px;
+    font-size: 0.84rem;
+  }
+
+  .history-entry-card {
+    padding: 14px 12px;
+    border-radius: 16px;
+  }
 }

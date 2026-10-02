@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import type { MentorProfileData } from '../Mentors-Onboarding'
 import type { UserProfile } from '../SignIn-Screen'
 
@@ -35,7 +36,7 @@ export const MentorProfileModal: React.FC<MentorProfileModalProps> = ({
   const isVerified = Boolean(mentorData?.isVerified)
   const isRejected = !isVerified && mentorData?.verificationStatus === 'rejected'
 
-  return (
+  return createPortal(
     <div className="profile-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="profile-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Mobile Drag Indicator */}
@@ -254,7 +255,8 @@ export const MentorProfileModal: React.FC<MentorProfileModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

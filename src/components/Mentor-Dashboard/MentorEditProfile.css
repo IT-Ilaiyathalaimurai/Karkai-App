@@ -2,11 +2,13 @@
 
 .mentor-edit-page {
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--karkai-bg-main, #f8fafc);
-  padding: 16px;
-  padding-bottom: 90px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(90px + env(safe-area-inset-bottom, 0px));
   color: #0f172a;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mentor-edit-container {
@@ -365,10 +367,10 @@
   right: 0;
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
-  padding: 12px 16px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
   display: flex;
   justify-content: center;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.06);
   z-index: 50;
 }
 
@@ -384,11 +386,13 @@
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   color: #475569;
+  min-height: 48px;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .mentor-edit-save-btn {
@@ -396,8 +400,9 @@
   background: #2563eb;
   border: none;
   color: #ffffff;
+  min-height: 48px;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -406,6 +411,7 @@
   justify-content: center;
   gap: 8px;
   transition: background 0.15s ease;
+  touch-action: manipulation;
 }
 
 .mentor-edit-save-btn:hover:not(:disabled) {
@@ -415,4 +421,18 @@
 .mentor-edit-save-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .mentor-edit-field input,
+  .mentor-edit-field select,
+  .mentor-edit-field textarea {
+    font-size: 16px !important;
+  }
+
+  .mentor-edit-back-btn,
+  .mentor-edit-header-save-btn {
+    min-height: 40px;
+    touch-action: manipulation;
+  }
 }

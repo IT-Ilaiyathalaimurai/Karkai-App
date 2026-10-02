@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import type { StudentProfileData } from '../Students-Onboarding'
 import type { UserProfile } from '../SignIn-Screen'
 
@@ -32,7 +33,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
     .join('')
     .toUpperCase() || 'S'
 
-  return (
+  return createPortal(
     <div className="profile-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="profile-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Mobile Drag Indicator */}
@@ -419,6 +420,7 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -46,9 +46,22 @@
 }
 
 @media (max-width: 520px) {
+  .mentor-onboarding-wrapper {
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 10px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
   .mentor-onboarding-card {
-    padding: 24px 18px;
-    border-radius: 20px;
+    padding: 20px 14px;
+    border-radius: 18px;
+    box-shadow: none;
+    border: 1px solid #e2e8f0;
+  }
+
+  .mentor-btn-primary,
+  .mentor-btn-secondary,
+  .mentor-btn-submit {
+    min-height: 48px;
+    font-size: 15px;
   }
 }
 

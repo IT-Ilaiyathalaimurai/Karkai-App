@@ -65,8 +65,8 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--dash-border);
-  padding: 8px 16px;
-  min-height: 74px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
+  min-height: calc(64px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -80,18 +80,32 @@
 }
 
 .topbar-logo {
-  height: 56px;
-  max-height: 58px;
+  height: 50px;
+  max-height: 54px;
   width: auto;
-  max-width: 175px;
+  max-width: 160px;
   object-fit: contain;
   display: block;
 }
 
 @media (max-width: 480px) {
+  .dashboard-topbar {
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 6px;
+    min-height: calc(56px + env(safe-area-inset-top, 0px));
+  }
+
+  .topbar-brand-section {
+    gap: 8px;
+  }
+
   .topbar-logo {
-    height: 48px;
-    max-width: 150px;
+    height: 38px;
+    max-width: 120px;
+  }
+
+  .topbar-wing-pill {
+    font-size: 10px !important;
+    padding: 2px 7px !important;
   }
 }
 
@@ -235,11 +249,19 @@
    ========================================================================== */
 .dashboard-main-content {
   flex: 1;
-  padding: 16px 16px calc(76px + var(--safe-bottom));
+  padding: 16px 16px calc(76px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+@media (max-width: 640px) {
+  .dashboard-main-content {
+    padding: 12px 14px calc(100px + env(safe-area-inset-bottom, 0px));
+    overflow-x: hidden;
+  }
 }
 
 /* ==========================================================================
@@ -252,16 +274,15 @@
   transform: translateX(-50%);
   width: 100%;
   max-width: 520px;
-  height: 64px;
+  height: calc(62px + env(safe-area-inset-bottom, 0px));
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(226, 232, 240, 0.95);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-around;
-  padding: 0 4px;
-  padding-bottom: var(--safe-bottom);
+  padding: 5px 6px env(safe-area-inset-bottom, 0px);
   z-index: 999;
   box-shadow: 0 -4px 18px rgba(15, 23, 42, 0.07);
   box-sizing: border-box;
@@ -270,8 +291,10 @@
 @media (max-width: 640px) {
   .mobile-bottom-tabbar {
     left: 0;
+    right: 0;
     transform: none;
     max-width: 100%;
+    width: 100%;
   }
 }
 
@@ -282,11 +305,12 @@
   justify-content: center;
   gap: 3px;
   flex: 1;
-  height: 100%;
+  height: 52px;
+  min-height: 48px;
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 2px 0;
   color: #64748b;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   -webkit-tap-highlight-color: transparent;
@@ -4160,6 +4184,67 @@
 .my-mentor-view-btn:active {
   transform: scale(0.97);
 }
+
+/* ==========================================================================
+   Mobile-Only Optimization Rules (Phone Screens <= 640px)
+   ========================================================================== */
+@media (max-width: 640px) {
+  /* 1. Prevent iOS auto-zoom on input tap */
+  input,
+  textarea,
+  select,
+  .mentors-search-input,
+  .add-task-input,
+  .chat-input,
+  .direct-chat-input-field {
+    font-size: 16px !important;
+  }
+
+  /* 2. Modals to Native Mobile Bottom Sheets */
+  .mentor-detail-modal-backdrop,
+  .student-doc-modal-backdrop {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .mentor-detail-modal-card,
+  .student-doc-modal-card {
+    border-radius: 24px 24px 0 0 !important;
+    max-height: 92vh !important;
+    width: 100% !important;
+    animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .mentor-detail-modal-card.resume,
+  .student-doc-modal-card.resume {
+    height: 88vh !important;
+  }
+
+  /* 3. Filter Bar padding and scroll */
+  .mentors-filter-bar {
+    padding: 2px 2px 6px;
+    gap: 6px;
+  }
+
+  .mentor-filter-pill {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  /* 4. Action Buttons Touch Target Enhancement */
+  .dash-action-btn,
+  .mentor-book-primary-btn,
+  .mentor-book-quick-btn,
+  .profile-edit-btn,
+  .profile-close-btn,
+  .session-join-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 
 
 

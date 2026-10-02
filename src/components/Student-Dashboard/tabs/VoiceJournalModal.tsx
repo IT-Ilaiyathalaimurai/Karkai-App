@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import {
   type VoiceJournalEntry,
   type NewWordEntry,
@@ -37,6 +38,7 @@ export const VoiceJournalModal: React.FC<VoiceJournalModalProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [isCelebration, setIsCelebration] = useState<boolean>(false)
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0)
 
   // Audio Recording State
   const [isRecording, setIsRecording] = useState<boolean>(false)
@@ -49,6 +51,40 @@ export const VoiceJournalModal: React.FC<VoiceJournalModalProps> = ({
   const audioChunksRef = useRef<Blob[]>([])
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+
+  // Track mobile visual viewport (keyboard opening on iOS & Android) + lock body scroll
+  useEffect(() => {
+    if (!isOpen) {
+      setKeyboardHeight(0)
+      return
+    }
+
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null
+    if (!vv) {
+      return () => {
+        document.body.style.overflow = originalOverflow
+      }
+    }
+
+    const updateKeyboard = () => {
+      if (!window.visualViewport) return
+      const diff = window.innerHeight - window.visualViewport.height
+      setKeyboardHeight(diff > 60 ? diff : 0)
+    }
+
+    vv.addEventListener('resize', updateKeyboard)
+    vv.addEventListener('scroll', updateKeyboard)
+    updateKeyboard()
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+      vv.removeEventListener('resize', updateKeyboard)
+      vv.removeEventListener('scroll', updateKeyboard)
+    }
+  }, [isOpen])
 
   // Reset or cleanup on open/close
   useEffect(() => {
@@ -293,9 +329,20 @@ export const VoiceJournalModal: React.FC<VoiceJournalModalProps> = ({
     }
   }
 
-  return (
-    <div className="vj-modal-overlay" onClick={onClose}>
+  if (!isOpen) return null
+
+  return createPortal(
+    <div
+      className="vj-modal-overlay"
+      onClick={onClose}
+      style={{
+        bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px',
+      }}
+    >
       <div className="vj-modal-sheet" onClick={(e) => e.stopPropagation()}>
+        {/* Mobile Drag Indicator */}
+        <div className="vj-sheet-handle" />
+
         {/* Celebration State Overlay */}
         {isCelebration && (
           <div className="vj-celebration-overlay">
@@ -639,6 +686,7 @@ export const VoiceJournalModal: React.FC<VoiceJournalModalProps> = ({
           )}
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

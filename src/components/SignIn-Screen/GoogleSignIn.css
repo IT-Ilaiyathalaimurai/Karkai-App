@@ -62,9 +62,14 @@
   }
 
   .google-signin-btn,
+  .signin-email-submit-btn,
   .dev-signin-btn {
     min-height: 48px;
     touch-action: manipulation;
+  }
+
+  .signin-email-input {
+    font-size: 16px !important;
   }
 }
 
@@ -109,6 +114,149 @@
   color: #64748b;
   margin: 0;
   line-height: 1.5;
+}
+
+/* Email Input Sign-in Form */
+.signin-email-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.signin-input-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-left: 2px;
+}
+
+.signin-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.signin-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.signin-email-input {
+  width: 100%;
+  height: 50px;
+  padding: 10px 14px 10px 42px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
+  font-size: 15px;
+  color: #0f172a;
+  background-color: #f8fafc;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.signin-email-input:focus {
+  border-color: #164e87;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(22, 78, 135, 0.12);
+}
+
+.signin-email-input::placeholder {
+  color: #94a3b8;
+}
+
+.signin-email-submit-btn {
+  width: 100%;
+  height: 50px;
+  margin-top: 4px;
+  background-color: #164e87;
+  border: none;
+  border-radius: 14px;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(22, 78, 135, 0.25);
+  touch-action: manipulation;
+}
+
+.signin-email-submit-btn:hover:not(:disabled) {
+  background-color: #113c69;
+  box-shadow: 0 6px 18px rgba(22, 78, 135, 0.32);
+  transform: translateY(-1px);
+}
+
+.signin-email-submit-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.signin-email-submit-btn:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+/* Quick Fill Accounts Chips */
+.signin-quick-accounts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0 12px;
+}
+
+.quick-accounts-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.quick-accounts-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.quick-chip-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.quick-chip-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.quick-chip-btn.student:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.quick-chip-btn.mentor:hover {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #15803d;
 }
 
 /* Primary Google Sign-in Button */

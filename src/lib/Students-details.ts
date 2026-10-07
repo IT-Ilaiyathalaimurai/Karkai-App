@@ -908,6 +908,54 @@ export async function getStudentProfileForMentor(
 }
 
 /**
+ * Fetch all students from the 'Student-details' table for Admin User Management.
+ * Queries directly ordered by created_at descending.
+ */
+export async function getAllStudents(): Promise<StudentDetailsPayload[]> {
+  const resultList: StudentDetailsPayload[] = []
+
+  // 1. Try anon REST endpoint
+  const restData = await fetchStudentAnonRest('select=*&order=created_at.desc')
+  if (Array.isArray(restData) && restData.length > 0) {
+    restData.forEach((row) => {
+      const normalized = normalizeStudentPayload(row)
+      if (normalized) resultList.push(normalized)
+    })
+    return resultList
+  }
+
+  // 2. Try Supabase client (anon or primary)
+  const clientToUse = anonSupabase || supabase
+  if (clientToUse && isSupabaseConfigured) {
+    try {
+      const { data, error } = await clientToUse
+        .from(STUDENT_TABLE_NAME)
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (!error && Array.isArray(data)) {
+        data.forEach((row) => {
+          const normalized = normalizeStudentPayload(row)
+          if (normalized) resultList.push(normalized)
+        })
+        return resultList
+      }
+    } catch (e) {
+      console.warn('Error querying all students:', e)
+    }
+  }
+
+  // 3. Fallback: Check cached student profile
+  const cached = getCachedStudentProfile()
+  if (cached) {
+    const normalized = normalizeStudentPayload(cached)
+    if (normalized) resultList.push(normalized)
+  }
+
+  return resultList
+}
+
+/**
  * SQL Schema definition for the 'Student-details' table and 'Students-assets' storage bucket.
  * This can be run in the Supabase SQL Editor.
  */

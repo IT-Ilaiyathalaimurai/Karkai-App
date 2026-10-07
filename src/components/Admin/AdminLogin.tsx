@@ -38,12 +38,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
     }
   }
 
-  const handleFillDemo = () => {
-    setEmail(ADMIN_EMAIL)
-    setPassword(ADMIN_PASSWORD)
-    setErrorMessage(null)
-  }
-
   return (
     <div className="admin-login-wrapper">
       <main className="admin-login-card">
@@ -188,18 +182,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({
             )}
           </button>
         </form>
-
-        {/* Quick autofill helper for development & ease of evaluation */}
-        <div className="admin-demo-helper">
-          <button
-            type="button"
-            className="admin-quick-fill-btn"
-            onClick={handleFillDemo}
-            id="admin-quick-fill-btn"
-          >
-            Auto-fill Authorized Credentials
-          </button>
-        </div>
 
         {/* Footer */}
         <footer className="admin-login-footer">

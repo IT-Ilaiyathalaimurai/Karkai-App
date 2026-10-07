@@ -431,3 +431,29 @@ export async function withdrawMentorshipRequest(
   return { success: true }
 }
 
+/**
+ * Fetch ALL mentor-mentee connections from the Supabase table for Admin Governance.
+ * Supports anonSupabase fallback to ensure unblocked read access.
+ */
+export async function getAllConnections(): Promise<MentorMenteeConnection[]> {
+  if (supabase && isSupabaseConfigured) {
+    try {
+      const clientToUse = anonSupabase || supabase
+      const { data, error } = await clientToUse
+        .from(CONNECTIONS_TABLE_NAME)
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (!error && Array.isArray(data)) {
+        return data as MentorMenteeConnection[]
+      } else if (error) {
+        console.warn('Notice querying all connections from Supabase:', error.message)
+      }
+    } catch (err) {
+      console.warn('Error fetching all connections from Supabase:', err)
+    }
+  }
+
+  return getCachedConnections()
+}
+

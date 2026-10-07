@@ -561,15 +561,6 @@ export async function getStudentDetails(
       resolvedEmail = sessionData.session?.user?.email
     }
 
-    if (!resolvedUserId && resolvedEmail) {
-      const { data: userRec } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', resolvedEmail)
-        .maybeSingle()
-      if (userRec?.id) resolvedUserId = userRec.id
-    }
-
     // 1. First priority: Query by user_id
     if (resolvedUserId) {
       const { data, error } = await supabase

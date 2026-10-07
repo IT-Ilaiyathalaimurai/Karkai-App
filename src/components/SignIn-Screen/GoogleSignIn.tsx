@@ -14,12 +14,14 @@ export interface GoogleSignInProps {
   onSignInSuccess: (user: UserProfile) => void
   currentUser?: UserProfile | null
   onOpenAdmin?: () => void
+  onViewTerms?: () => void
 }
 
 export const GoogleSignIn: React.FC<GoogleSignInProps> = ({
   onSignInSuccess,
   currentUser = null,
   onOpenAdmin,
+  onViewTerms,
 }) => {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(currentUser)
   const [isLoading, setIsLoading] = useState(false)
@@ -272,9 +274,25 @@ export const GoogleSignIn: React.FC<GoogleSignInProps> = ({
 
         <footer className="signin-footer">
           By continuing, you agree to Karkai's{' '}
-          <a href="#terms" onClick={(e) => e.preventDefault()}>Terms of Service</a>{' '}
+          <a
+            href="#terms"
+            onClick={(e) => {
+              e.preventDefault()
+              if (onViewTerms) onViewTerms()
+            }}
+          >
+            Terms of Service
+          </a>{' '}
           and{' '}
-          <a href="#privacy" onClick={(e) => e.preventDefault()}>Privacy Policy</a>.
+          <a
+            href="#privacy"
+            onClick={(e) => {
+              e.preventDefault()
+              if (onViewTerms) onViewTerms()
+            }}
+          >
+            Privacy Policy
+          </a>.
         </footer>
       </main>
     </div>

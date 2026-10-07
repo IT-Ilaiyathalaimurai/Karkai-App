@@ -23,25 +23,29 @@
 .mentor-dashboard-root {
   min-height: 100vh;
   min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   background: #0f172a;
   display: flex;
   justify-content: center;
   color: var(--mentor-text-main);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* Mobile Shell container: Perfectly centered on desktop/laptop, full-width on mobile */
 .mentor-mobile-shell {
   width: 100%;
   max-width: 520px;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   background: #ffffff;
   display: flex;
   flex-direction: column;
   position: relative;
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
 }
 
 @media (max-width: 640px) {
@@ -267,6 +271,7 @@
    ========================================================================== */
 .mentor-main-content {
   flex: 1;
+  min-height: 0;
   padding: 16px 16px calc(76px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
@@ -1076,6 +1081,10 @@
   font-weight: 550;
   transition: all 0.2s ease;
   letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .mentor-bottom-tab-item.active {
@@ -1652,6 +1661,530 @@
   background: #b91c1c;
 }
 
+/* ==========================================================================
+   Mentor Home Tab — Student Assigned Tasks & Submissions Section
+   ========================================================================== */
+.mentor-tasks-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 4px;
+  animation: mentorFadeIn 0.25s ease-out;
+}
+
+.mentor-tasks-header-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.mentor-tasks-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mentor-tasks-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.mentor-tasks-subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.mentor-assign-task-cta-btn {
+  background: #0f1e36;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 750;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 14px rgba(15, 30, 54, 0.18);
+  transition: all 0.15s ease;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.mentor-assign-task-cta-btn:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+.mentor-assign-task-cta-btn:active {
+  transform: scale(0.98);
+}
+
+/* Metrics Row */
+.mentor-tasks-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .mentor-tasks-metrics-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.mentor-metric-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mentor-metric-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mentor-metric-icon.needs-review {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.mentor-metric-icon.in-progress {
+  background: #fefce8;
+  color: #a16207;
+}
+
+.mentor-metric-icon.reviewed {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.mentor-metric-texts {
+  display: flex;
+  flex-direction: column;
+}
+
+.mentor-metric-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.mentor-metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Filter Bar */
+.mentor-tasks-filter-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mentor-tasks-filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.mentor-tasks-filter-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  min-height: 38px;
+}
+
+.mentor-tasks-filter-pill.active {
+  background: #0f1e36;
+  color: #ffffff;
+  border-color: #0f1e36;
+}
+
+.mentor-tasks-filter-pill .count {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.mentor-tasks-filter-pill.active .count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Task List & Card */
+.mentor-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mentor-task-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mentor-task-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.07);
+}
+
+.mentor-task-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mentor-task-student-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mentor-task-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7, #1e3a8a);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mentor-task-student-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mentor-task-student-name {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.mentor-task-date-info {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Status Badges */
+.mentor-task-status-pill {
+  font-size: 11px;
+  font-weight: 750;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mentor-task-status-pill.needs_review {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.mentor-task-status-pill.in_progress {
+  background: #fefce8;
+  color: #854d0e;
+  border: 1px solid #fef08a;
+}
+
+.mentor-task-status-pill.reviewed {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+/* Task details */
+.mentor-task-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mentor-task-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.mentor-task-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.mentor-task-deadline-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0284c7;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 4px 10px;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mentor-task-deadline-tag.overdue {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+/* Student submission preview inside card */
+.mentor-task-submission-box {
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.submission-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.submission-box-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #166534;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.submission-box-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  color: #15803d;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.submission-box-link-btn:hover {
+  background: #dcfce7;
+}
+
+.submission-box-notes {
+  margin: 0;
+  font-size: 12.5px;
+  color: #14532d;
+  font-style: italic;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Feedback box inside card */
+.mentor-task-feedback-box {
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feedback-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.feedback-box-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #1d4ed8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.feedback-box-rating {
+  font-size: 13px;
+  color: #f59e0b;
+  font-weight: 800;
+}
+
+.feedback-box-text {
+  margin: 0;
+  font-size: 12.5px;
+  color: #1e3a8a;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+/* Actions Row */
+.mentor-task-actions-row {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.mentor-review-btn {
+  flex: 1;
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  box-shadow: 0 3px 10px rgba(22, 163, 74, 0.22);
+  transition: all 0.15s ease;
+}
+
+.mentor-review-btn:hover {
+  background: #15803d;
+}
+
+.mentor-update-feedback-btn {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 40px;
+  transition: all 0.15s ease;
+}
+
+.mentor-update-feedback-btn:hover {
+  background: #dbeafe;
+}
+
+/* Empty State */
+.mentor-tasks-empty-card {
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 36px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.mentor-tasks-empty-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mentor-tasks-empty-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.mentor-tasks-empty-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  max-width: 380px;
+  line-height: 1.45;
+}
+
+
 /* Profile Modal Rejection Notice */
 .profile-modal-rejection-banner {
   background: #fef2f2;
@@ -1707,6 +2240,8 @@
 /* Tab root container */
 .mentor-requests-tab-content {
   flex: 1;
+  min-height: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   padding: 0 0 24px;
@@ -2073,11 +2608,42 @@
   font-weight: 500;
 }
 
-/* Action Buttons Row (Accept / Reject) */
+/* Action Buttons Row (Accept / Reject / View Profile) */
 .request-actions-row {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* View Profile Button */
+.request-view-profile-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 120px;
+  touch-action: manipulation;
+}
+
+.request-view-profile-btn:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+  transform: translateY(-1px);
+}
+
+.request-view-profile-btn:active {
+  transform: scale(0.98);
 }
 
 /* Accept Button */
@@ -2439,11 +3005,44 @@
   /* Action buttons */
   .home-reverify-btn,
   .req-action-btn,
-  .mentor-modal-action-btn {
+  .mentor-modal-action-btn,
+  .request-view-profile-btn,
+  .request-accept-btn,
+  .request-reject-btn {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
+  }
+
+  /* Small phone adjustments for requests */
+  @media (max-width: 480px) {
+    .request-card-top {
+      flex-wrap: wrap;
+    }
+    .request-card-badge-col {
+      width: 100%;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 6px;
+      border-top: 1px dashed #e2e8f0;
+    }
+    .request-actions-row {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .request-actions-row > button {
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .mentor-bottom-tab-label {
+      font-size: 10px;
+    }
   }
 }
 

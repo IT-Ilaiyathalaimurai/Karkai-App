@@ -821,42 +821,6 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
     }
   }
 
-  const handleUseSampleId = (forMinor = false, e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-    const sampleDobText = forMinor ? '14-05-2010' : '14-05-2005'
-    const wingTitle = forMinor ? 'SCHOOL STUDENT IDENTITY CARD' : 'KARKAI STUDENT IDENTITY CARD'
-    const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="380" viewBox="0 0 600 380">
-      <defs>
-        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${forMinor ? '#d97706' : '#164e87'}" />
-          <stop offset="100%" stop-color="${forMinor ? '#f59e0b' : '#0284c7'}" />
-        </linearGradient>
-      </defs>
-      <rect width="600" height="380" rx="20" fill="#ffffff" stroke="#cbd5e1" stroke-width="4"/>
-      <rect width="600" height="90" rx="20" fill="url(#g)"/>
-      <rect y="70" width="600" height="20" fill="url(#g)"/>
-      <text x="30" y="55" fill="#ffffff" font-family="sans-serif" font-size="22" font-weight="bold">${wingTitle}</text>
-      <circle cx="100" cy="200" r="60" fill="#e2e8f0"/>
-      <circle cx="100" cy="180" r="26" fill="#94a3b8"/>
-      <path d="M 60 240 Q 100 200 140 240" fill="#94a3b8"/>
-      <text x="200" y="160" fill="#0f172a" font-family="sans-serif" font-size="20" font-weight="bold">NAME: ${fullName || (forMinor ? 'SCHOOL STUDENT' : 'SENIOR STUDENT')}</text>
-      <rect x="195" y="180" width="370" height="42" rx="8" fill="#dcfce7" stroke="#86efac" stroke-width="2"/>
-      <text x="205" y="208" fill="#166534" font-family="sans-serif" font-size="20" font-weight="bold">DOB: ${sampleDobText} (VERIFIED)</text>
-      <text x="200" y="255" fill="#475569" font-family="sans-serif" font-size="16">ID NO: ${forMinor ? 'SCH-STU-2026-4412' : 'KK-STU-2026-8841'}</text>
-      <text x="200" y="285" fill="#475569" font-family="sans-serif" font-size="16">VALID THRU: 2027</text>
-      <rect x="470" y="240" width="90" height="90" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
-      <text x="495" y="290" fill="#64748b" font-family="sans-serif" font-size="14">QR</text>
-    </svg>`
-    const encodedSvg = `data:image/svg+xml;utf8,${encodeURIComponent(svgData)}`
-    setIdCardPhotoUrl(encodedSvg)
-    setIdCardFileName(forMinor ? 'sample-school-id.svg' : 'sample-senior-id.svg')
-    setIsPdf(false)
-    setErrorMessage(null)
-    runOcrExtraction(encodedSvg)
-  }
 
   const handleRemovePhoto = () => {
     setIdCardPhotoUrl(null)
@@ -1853,28 +1817,6 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
                       </button>
                     </div>
 
-                    <div className="upload-sample-divider">
-                      <span>or for quick testing</span>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                      <button
-                        type="button"
-                        className="sample-upload-btn"
-                        onClick={(e) => handleUseSampleId(true, e)}
-                        id="sample-school-id-btn"
-                      >
-                        School Student (&lt; 18)
-                      </button>
-                      <button
-                        type="button"
-                        className="sample-upload-btn"
-                        onClick={(e) => handleUseSampleId(false, e)}
-                        id="sample-senior-id-btn"
-                      >
-                        Senior Student (18+)
-                      </button>
-                    </div>
                   </div>
                 ) : (
                   <div className="id-preview-container">

@@ -7,6 +7,7 @@ import {
 } from '../../../lib/Mentors-details'
 import {
   sendMentorshipRequest,
+  withdrawMentorshipRequest,
   getStudentRequests,
   type MentorMenteeConnection,
 } from '../../../lib/mentor-mentee-connections'
@@ -27,6 +28,11 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
 
   // Full Profile Details Modal
   const [selectedMentor, setSelectedMentor] = useState<MentorProfileData | null>(null)
+
+  // Mentorship Request Withdrawal State
+  const [withdrawingConnection, setWithdrawingConnection] = useState<MentorMenteeConnection | null>(null)
+  const [isWithdrawing, setIsWithdrawing] = useState<boolean>(false)
+  const [toastNotice, setToastNotice] = useState<string | null>(null)
 
   const loadData = async () => {
     setIsLoading(true)
@@ -75,6 +81,43 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
     }
   }
 
+  // Action: Student withdraws / cancels their pending mentorship request
+  const handleConfirmWithdraw = async () => {
+    if (!withdrawingConnection) return
+    setIsWithdrawing(true)
+    const targetConn = withdrawingConnection
+    const targetMentorName = targetConn.mentor_name
+
+    try {
+      const res = await withdrawMentorshipRequest(
+        targetConn.id,
+        targetConn.mentor_name,
+        targetConn.student_name
+      )
+
+      if (res.success) {
+        setStudentRequests((prev) =>
+          prev.filter(
+            (c) =>
+              c.id !== targetConn.id &&
+              c.mentor_name?.trim().toLowerCase() !== targetMentorName.trim().toLowerCase()
+          )
+        )
+        setToastNotice(`Mentorship request to ${targetMentorName} was withdrawn. You can now choose another mentor.`)
+        setTimeout(() => setToastNotice(null), 5000)
+      } else {
+        setStudentRequests((prev) => prev.filter((c) => c.id !== targetConn.id))
+        setToastNotice(`Mentorship request to ${targetMentorName} was withdrawn.`)
+        setTimeout(() => setToastNotice(null), 5000)
+      }
+    } catch (err) {
+      console.error('Error withdrawing request:', err)
+    } finally {
+      setIsWithdrawing(false)
+      setWithdrawingConnection(null)
+    }
+  }
+
   // Find connection record for a mentor (match by name only)
   const findConnection = (mentor: MentorProfileData): MentorMenteeConnection | undefined => {
     return studentRequests.find(
@@ -91,6 +134,27 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
 
   return (
     <div className="dashboard-mentors-tab" id="student-mentors-tab">
+      {/* Toast Notification */}
+      {toastNotice && (
+        <div className="mentors-toast-notification" role="status">
+          <div className="mentors-toast-content">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="8 12 11 15 16 9" />
+            </svg>
+            <span>{toastNotice}</span>
+          </div>
+          <button
+            type="button"
+            className="mentors-toast-close"
+            onClick={() => setToastNotice(null)}
+            aria-label="Close notification"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* ---- Pill Toggle Tab Switcher ---- */}
       {hasAccepted && (
         <div className="mentors-pill-switcher-wrap">
@@ -363,6 +427,20 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
                 )}
 
                 {/* If accepted by mentor, show connected notice */}
+                {/* If pending mentor response, show status & quick withdraw notice */}
+                {isPending && (
+                  <div className="mentor-pending-feedback-card" id={`pending-notice-${mentorKey}`}>
+                    <div className="pending-feedback-header">
+                      <span className="mentor-pending-pulse-dot" />
+                      <span className="pending-feedback-title">Request Pending Review</span>
+                    </div>
+                    <p className="pending-feedback-text">
+                      Waiting for {mentor.fullName} to respond. If you want to change your mentor, you can withdraw this request anytime.
+                    </p>
+                  </div>
+                )}
+
+                {/* If accepted by mentor, show connected notice */}
                 {isAccepted && (
                   <div className="mentor-accepted-feedback-card">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5">
@@ -421,18 +499,31 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
                         <span>Request Again</span>
                       </button>
                     ) : isPending ? (
-                      <button
-                        type="button"
-                        className="mentor-request-btn requested"
-                        disabled
-                        id={`mentor-request-btn-${mentor.fullName.replace(/\s+/g, '-').toLowerCase()}`}
-                        title="Mentorship request sent, waiting for mentor response"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        <span>Requested</span>
-                      </button>
+                      <div className="mentor-pending-actions-wrap">
+                        <button
+                          type="button"
+                          className="mentor-request-btn requested"
+                          disabled
+                          id={`mentor-request-btn-${mentor.fullName.replace(/\s+/g, '-').toLowerCase()}`}
+                          title="Mentorship request sent, waiting for mentor response"
+                        >
+                          <span className="mentor-pending-pulse-dot" />
+                          <span>Requested</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="mentor-withdraw-btn"
+                          onClick={() => connection && setWithdrawingConnection(connection)}
+                          id={`mentor-withdraw-btn-${mentor.fullName.replace(/\s+/g, '-').toLowerCase()}`}
+                          title="Withdraw request to select another mentor"
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                          <span>Withdraw</span>
+                        </button>
+                      </div>
                     ) : (
                       <button
                         type="button"
@@ -668,12 +759,24 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
                     <span>Request Again</span>
                   </button>
                 ) : isModalPending ? (
-                  <button type="button" className="mentor-detail-book-btn requested" disabled>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    <span>Requested</span>
-                  </button>
+                  <div className="mentor-detail-modal-pending-group">
+                    <button type="button" className="mentor-detail-book-btn requested" disabled>
+                      <span className="mentor-pending-pulse-dot" />
+                      <span>Requested</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="mentor-detail-withdraw-btn"
+                      onClick={() => modalConn && setWithdrawingConnection(modalConn)}
+                      title="Withdraw request to choose another mentor"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                      <span>Withdraw Request</span>
+                    </button>
+                  </div>
                 ) : (
                   <button
                     type="button"
@@ -696,6 +799,81 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
           </div>
         )
       })()}
+
+      {/* =========================================================================
+          WITHDRAW REQUEST CONFIRMATION MODAL
+          ========================================================================= */}
+      {withdrawingConnection && (
+        <div
+          className="mentor-withdraw-confirm-backdrop"
+          onClick={() => !isWithdrawing && setWithdrawingConnection(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="mentor-withdraw-confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="withdraw-modal-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+            </div>
+
+            <h3 className="withdraw-modal-title">Withdraw Mentorship Request?</h3>
+
+            <p className="withdraw-modal-desc">
+              Are you sure you want to withdraw your mentorship request to{' '}
+              <strong>{withdrawingConnection.mentor_name}</strong>?
+            </p>
+
+            <div className="withdraw-modal-notice-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>
+                Once withdrawn, your pending request will be cancelled immediately and you will be free to choose and request any other mentor.
+              </span>
+            </div>
+
+            <div className="withdraw-modal-actions">
+              <button
+                type="button"
+                className="withdraw-modal-cancel-btn"
+                onClick={() => setWithdrawingConnection(null)}
+                disabled={isWithdrawing}
+              >
+                Keep Request
+              </button>
+              <button
+                type="button"
+                className="withdraw-modal-confirm-btn"
+                onClick={handleConfirmWithdraw}
+                disabled={isWithdrawing}
+              >
+                {isWithdrawing ? (
+                  <>
+                    <span className="mentors-btn-spinner" />
+                    <span>Withdrawing...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    <span>Yes, Withdraw Request</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

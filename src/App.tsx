@@ -21,6 +21,7 @@ import {
   clearStudentDraft,
   clearMentorDraft,
 } from './lib/onboarding-persistence'
+import { TermsConditions } from './components/Terms-Conditions'
 import heroImg from './assets/hero.png'
 import logoImg from './assets/Karkai_Logo.png'
 import reactLogo from './assets/react.svg'
@@ -29,6 +30,7 @@ import './App.css'
 
 type AppView =
   | 'splash'
+  | 'terms'
   | 'signin'
   | 'role-selection'
   | 'student-onboarding'
@@ -187,7 +189,12 @@ function App() {
 
   const handleSplashDismiss = async () => {
     if (!currentUser) {
-      setCurrentView('signin')
+      const termsAccepted = localStorage.getItem('karkai_terms_accepted') === 'true'
+      if (!termsAccepted) {
+        setCurrentView('terms')
+      } else {
+        setCurrentView('signin')
+      }
       return
     }
 
@@ -342,12 +349,23 @@ function App() {
     )
   }
 
+  if (currentView === 'terms') {
+    const isAlreadyAccepted = localStorage.getItem('karkai_terms_accepted') === 'true'
+    return (
+      <TermsConditions
+        onAccept={() => setCurrentView('signin')}
+        onBack={isAlreadyAccepted ? () => setCurrentView('signin') : undefined}
+      />
+    )
+  }
+
   if (currentView === 'signin') {
     return (
       <GoogleSignIn
         currentUser={currentUser}
         onSignInSuccess={handleSignInSuccess}
         onOpenAdmin={() => setCurrentView(isAdminAuthenticated ? 'admin-dashboard' : 'admin-login')}
+        onViewTerms={() => setCurrentView('terms')}
       />
     )
   }

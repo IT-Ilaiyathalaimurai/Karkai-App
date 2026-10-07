@@ -6,6 +6,7 @@ import {
   updateConnectionStatus,
   type MentorMenteeConnection,
 } from '../../../lib/mentor-mentee-connections'
+import { StudentProfileViewerModal } from '../StudentProfileViewerModal'
 
 export interface RequestsTabProps {
   mentorData?: MentorProfileData | null
@@ -17,6 +18,9 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ mentorData, user, onOp
   const [requests, setRequests] = useState<MentorMenteeConnection[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [activeFilter, setActiveFilter] = useState<'pending' | 'accepted' | 'rejected' | 'all'>('pending')
+
+  // Student Profile Viewer Modal State
+  const [viewingStudent, setViewingStudent] = useState<MentorMenteeConnection | null>(null)
 
   // Reject Modal State
   const [rejectingRequest, setRejectingRequest] = useState<MentorMenteeConnection | null>(null)
@@ -289,6 +293,19 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ mentorData, user, onOp
                   <div className="request-actions-row">
                     <button
                       type="button"
+                      className="request-view-profile-btn"
+                      onClick={() => setViewingStudent(req)}
+                      id={`view-profile-req-${req.id}`}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      <span>View Profile</span>
+                    </button>
+
+                    <button
+                      type="button"
                       className="request-accept-btn"
                       onClick={() => handleAccept(req)}
                       id={`accept-req-${req.id}`}
@@ -315,20 +332,53 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ mentorData, user, onOp
                   </div>
                 )}
 
-                {/* Accepted Action - Message Student */}
-                {req.status === 'accepted' && onOpenChat && (
+                {/* Accepted Action - View Profile & Message Student */}
+                {req.status === 'accepted' && (
                   <div className="request-actions-row" style={{ marginTop: '10px' }}>
                     <button
                       type="button"
-                      className="request-accept-btn"
-                      onClick={() => onOpenChat(req)}
-                      id={`chat-req-${req.id}`}
-                      style={{ background: '#2563eb' }}
+                      className="request-view-profile-btn"
+                      onClick={() => setViewingStudent(req)}
+                      id={`view-profile-req-${req.id}`}
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
                       </svg>
-                      <span>Open Direct Chat</span>
+                      <span>View Profile</span>
+                    </button>
+
+                    {onOpenChat && (
+                      <button
+                        type="button"
+                        className="request-accept-btn"
+                        onClick={() => onOpenChat(req)}
+                        id={`chat-req-${req.id}`}
+                        style={{ background: '#2563eb' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <span>Open Direct Chat</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Rejected Action - View Profile */}
+                {req.status === 'rejected' && (
+                  <div className="request-actions-row" style={{ marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      className="request-view-profile-btn"
+                      onClick={() => setViewingStudent(req)}
+                      id={`view-profile-req-${req.id}`}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                      <span>View Profile</span>
                     </button>
                   </div>
                 )}
@@ -450,6 +500,31 @@ export const RequestsTab: React.FC<RequestsTabProps> = ({ mentorData, user, onOp
           </div>
         </div>
       )}
+
+      {/* =========================================================================
+          VIEW FULL STUDENT PROFILE MODAL
+          ========================================================================= */}
+      <StudentProfileViewerModal
+        connection={viewingStudent}
+        isOpen={Boolean(viewingStudent)}
+        onClose={() => setViewingStudent(null)}
+        onAccept={(conn) => {
+          handleAccept(conn)
+          setViewingStudent(null)
+        }}
+        onReject={(conn) => {
+          handleOpenReject(conn)
+          setViewingStudent(null)
+        }}
+        onOpenChat={
+          onOpenChat
+            ? (conn) => {
+                onOpenChat(conn)
+                setViewingStudent(null)
+              }
+            : undefined
+        }
+      />
     </div>
   )
 }

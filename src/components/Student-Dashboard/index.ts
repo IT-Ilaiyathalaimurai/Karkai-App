@@ -1,4 +1,5 @@
 export * from './StudentDashboard'
 export * from './StudentProfileModal'
 export * from './StudentEditProfile'
+export * from './StudentSubmitTaskModal'
 export { default } from './StudentDashboard'

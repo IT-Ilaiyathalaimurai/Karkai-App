@@ -294,6 +294,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .conversation-card-item.has-unread .conversation-last-message {

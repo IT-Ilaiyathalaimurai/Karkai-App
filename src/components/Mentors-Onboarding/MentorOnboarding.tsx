@@ -64,8 +64,45 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
   // Step state
   const [currentStep, setCurrentStep] = useState<MentorStep>(initialDraft?.currentStep || 'information')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [successNotice, setSuccessNotice] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  // Clear a specific field error when the user modifies it
+  const clearFieldError = (key: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev
+      const copy = { ...prev }
+      delete copy[key]
+      return copy
+    })
+  }
+
+  // Smooth scroll to a specific field when clicked from consolidated errors
+  const scrollToField = (fieldKey: string) => {
+    const elementMap: Record<string, string> = {
+      fullName: 'mentor-fullname',
+      phoneNumber: 'mentor-phone',
+      workingAs: 'mentor-working-as',
+      workingIn: 'mentor-working-in',
+      city: 'mentor-city',
+      region: 'mentor-region',
+      techSkills: 'mentor-tech-skills-section',
+      softSkills: 'mentor-soft-skills-section',
+      bio: 'mentor-bio',
+      linkedinUrl: 'mentor-linkedin',
+      idCard: 'mentor-id-card-section',
+      resume: 'mentor-resume-section',
+    }
+    const id = elementMap[fieldKey] || fieldKey
+    const el = document.getElementById(id)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (typeof (el as HTMLElement).focus === 'function') {
+        ;(el as HTMLElement).focus()
+      }
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // STEP 1: YOUR INFORMATION
@@ -153,6 +190,8 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
     clearMentorDraft(userKey)
     setShowRestoredNotice(false)
     setCurrentStep('information')
+    setFieldErrors({})
+    setErrorMessage(null)
     setFullName(user?.name || '')
     setCountryCode('+91')
     setPhoneNumber('')
@@ -178,39 +217,42 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
   // ---------------------------------------------------------------------------
   const handleInformationContinue = (e: React.FormEvent) => {
     e.preventDefault()
-    setErrorMessage(null)
+    const errors: Record<string, string> = {}
 
     if (!fullName.trim()) {
-      setErrorMessage('Please enter your full name.')
-      return
+      errors.fullName = 'Full Name: Please enter your full name.'
     }
 
     const cleanPhone = phoneNumber.replace(/[\s-]/g, '')
     if (!cleanPhone || cleanPhone.length < 8 || !/^[0-9]+$/.test(cleanPhone)) {
-      setErrorMessage('Please enter a valid phone number (digits only).')
-      return
+      errors.phoneNumber = 'Phone Number: Please enter a valid phone number (digits only, min 8 digits).'
     }
 
     if (!workingAs.trim()) {
-      setErrorMessage('Please enter your current designation / role (e.g. Senior Software Engineer).')
-      return
+      errors.workingAs = 'Designation: Please enter your current designation / role.'
     }
 
     if (!workingIn.trim()) {
-      setErrorMessage('Please enter the organization / company you are working in.')
-      return
+      errors.workingIn = 'Organization: Please enter your current company or organization.'
     }
 
     if (!city.trim()) {
-      setErrorMessage('Please enter your city.')
-      return
+      errors.city = 'City: Please enter your native or current city.'
     }
 
     if (!region.trim()) {
-      setErrorMessage('Please enter your state / region.')
+      errors.region = 'State / Region: Please enter your state or region.'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      setErrorMessage(null)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
 
+    setFieldErrors({})
+    setErrorMessage(null)
     setCurrentStep('skills-bio')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -219,9 +261,11 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
   // STEP 2 HANDLERS
   // ---------------------------------------------------------------------------
   const toggleTechSkill = (skill: string) => {
-    setSelectedTechSkills((prev) =>
-      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
-    )
+    setSelectedTechSkills((prev) => {
+      const next = prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
+      if (next.length > 0) clearFieldError('techSkills')
+      return next
+    })
   }
 
   const handleAddCustomTechSkill = () => {
@@ -229,6 +273,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
     if (!trimmed) return
     if (!selectedTechSkills.includes(trimmed)) {
       setSelectedTechSkills((prev) => [...prev, trimmed])
+      clearFieldError('techSkills')
     }
     setCustomTechInput('')
   }
@@ -238,9 +283,11 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
   }
 
   const toggleSoftSkill = (skill: string) => {
-    setSelectedSoftSkills((prev) =>
-      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
-    )
+    setSelectedSoftSkills((prev) => {
+      const next = prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
+      if (next.length > 0) clearFieldError('softSkills')
+      return next
+    })
   }
 
   const handleAddCustomSoftSkill = () => {
@@ -248,6 +295,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
     if (!trimmed) return
     if (!selectedSoftSkills.includes(trimmed)) {
       setSelectedSoftSkills((prev) => [...prev, trimmed])
+      clearFieldError('softSkills')
     }
     setCustomSoftInput('')
   }
@@ -258,23 +306,31 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
 
   const handleSkillsBioContinue = (e: React.FormEvent) => {
     e.preventDefault()
-    setErrorMessage(null)
+    const errors: Record<string, string> = {}
 
     if (selectedTechSkills.length === 0) {
-      setErrorMessage('Please select or add at least one technical domain skill.')
-      return
+      errors.techSkills = 'Technical & Domain Skills: Please select or add at least one technical domain skill.'
     }
 
     if (selectedSoftSkills.length === 0) {
-      setErrorMessage('Please select or add at least one soft skill / mentorship strength.')
+      errors.softSkills = 'Soft Skills: Please select or add at least one soft skill / mentorship strength.'
+    }
+
+    if (!bio.trim()) {
+      errors.bio = 'Professional Bio: Please enter a brief professional bio (minimum 25 characters) to help students learn about your background.'
+    } else if (bio.trim().length < 25) {
+      errors.bio = `Professional Bio: Minimum 25 characters required (currently ${bio.trim().length} characters).`
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      setErrorMessage(null)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
 
-    if (!bio.trim() || bio.trim().length < 25) {
-      setErrorMessage('Please enter a brief professional bio (minimum 25 characters) to help students learn about your background.')
-      return
-    }
-
+    setFieldErrors({})
+    setErrorMessage(null)
     setCurrentStep('documents')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -284,11 +340,11 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
   // ---------------------------------------------------------------------------
   const handleIdCardFileSelect = (file: File) => {
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      setErrorMessage('Please upload an image file (JPG, PNG) or PDF of your ID card.')
+      setFieldErrors((prev) => ({ ...prev, idCard: 'ID Card: Please upload an image file (JPG, PNG) or PDF of your ID card.' }))
       return
     }
     if (file.size > 8 * 1024 * 1024) {
-      setErrorMessage('ID Card file is too large. Maximum file size is 8MB.')
+      setFieldErrors((prev) => ({ ...prev, idCard: 'ID Card: File is too large. Maximum file size is 8MB.' }))
       return
     }
 
@@ -296,42 +352,23 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
     const reader = new FileReader()
     reader.onload = () => {
       setIdCardPhotoUrl(reader.result as string)
-      setErrorMessage(null)
+      clearFieldError('idCard')
     }
     reader.readAsDataURL(file)
   }
 
-  const handleUseSampleId = (e: React.MouseEvent) => {
-    e.preventDefault()
-    const sampleSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="380" viewBox="0 0 600 380">
-      <rect width="600" height="380" rx="16" fill="%230F1E36"/>
-      <rect x="20" y="20" width="560" height="340" rx="12" fill="%23FFFFFF"/>
-      <rect x="40" y="40" width="520" height="60" rx="8" fill="%231E3A8A"/>
-      <text x="60" y="78" fill="%23FFFFFF" font-family="sans-serif" font-weight="bold" font-size="20">OFFICIAL MENTOR IDENTIFICATION</text>
-      <circle cx="100" cy="180" r="45" fill="%23CBD5E1"/>
-      <text x="170" y="160" fill="%230F172A" font-family="sans-serif" font-weight="bold" font-size="18">${encodeURIComponent(fullName || 'Senior Mentor')}</text>
-      <text x="170" y="190" fill="%23475569" font-family="sans-serif" font-size="14">${encodeURIComponent(workingAs || 'Senior Software Engineer')}</text>
-      <text x="170" y="215" fill="%232563EB" font-family="sans-serif" font-weight="600" font-size="13">${encodeURIComponent(workingIn || 'Global Tech')}</text>
-      <rect x="40" y="270" width="520" height="60" rx="6" fill="%23F8FAFC" stroke="%23E2E8F0"/>
-      <text x="60" y="305" fill="%23059669" font-family="sans-serif" font-weight="bold" font-size="13">VERIFIED CREDENTIAL CARD</text>
-    </svg>`
-
-    setIdCardPhotoUrl(sampleSvg)
-    setIdCardFileName('verified-mentor-id.svg')
-    setErrorMessage(null)
-  }
 
   const handleResumeFileSelect = (file: File) => {
     const validExts = ['.pdf', '.doc', '.docx']
     const hasValidExt = validExts.some((ext) => file.name.toLowerCase().endsWith(ext))
 
     if (!hasValidExt) {
-      setErrorMessage('Please upload your resume in .pdf or .doc format.')
+      setFieldErrors((prev) => ({ ...prev, resume: 'Resume: Please upload your resume in .pdf or .doc format.' }))
       return
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      setErrorMessage('Resume file is too large. Maximum file size is 2MB.')
+      setFieldErrors((prev) => ({ ...prev, resume: 'Resume: File is too large. Maximum file size is 2MB.' }))
       return
     }
 
@@ -342,7 +379,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
     const reader = new FileReader()
     reader.onload = () => {
       setResumeUrl(reader.result as string)
-      setErrorMessage(null)
+      clearFieldError('resume')
     }
     reader.readAsDataURL(file)
   }
@@ -360,31 +397,35 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
 
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setErrorMessage(null)
+    const errors: Record<string, string> = {}
 
     // Validate LinkedIn URL
     const cleanLinkedin = linkedinUrl.trim()
     if (!cleanLinkedin) {
-      setErrorMessage('LinkedIn profile URL is mandatory for mentor verification.')
-      return
-    }
-    if (!cleanLinkedin.toLowerCase().includes('linkedin.com')) {
-      setErrorMessage('Please enter a valid LinkedIn profile URL (e.g. https://www.linkedin.com/in/yourname).')
-      return
+      errors.linkedinUrl = 'LinkedIn URL: Profile URL is mandatory for mentor verification.'
+    } else if (!cleanLinkedin.toLowerCase().includes('linkedin.com')) {
+      errors.linkedinUrl = 'LinkedIn URL: Please enter a valid profile link containing linkedin.com.'
     }
 
     // Validate ID Card
     if (!idCardPhotoUrl) {
-      setErrorMessage('Work ID Card or Official Identification is mandatory for mentor verification.')
-      return
+      errors.idCard = 'ID Card: Official work identification document is mandatory for mentor verification.'
     }
 
     // Validate Resume
     if (!resumeUrl) {
-      setErrorMessage('Resume / Curriculum Vitae upload is mandatory for mentor review.')
+      errors.resume = 'Resume: Curriculum Vitae upload is mandatory for mentor review.'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      setErrorMessage(null)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
 
+    setFieldErrors({})
+    setErrorMessage(null)
     setIsLoading(true)
 
     try {
@@ -485,6 +526,8 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
             type="button"
             className="mentor-back-btn"
             onClick={() => {
+              setFieldErrors({})
+              setErrorMessage(null)
               if (currentStep === 'documents') setCurrentStep('skills-bio')
               else if (currentStep === 'skills-bio') setCurrentStep('information')
               else onBackToRoles?.()
@@ -585,15 +628,43 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
           </div>
         </div>
 
-        {/* Global Notifications */}
-        {errorMessage && (
-          <div className="mentor-alert-box error" role="alert">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <span>{errorMessage}</span>
+        {/* Global Notifications: Consolidated Errors Summary at Top */}
+        {(Object.keys(fieldErrors).length > 0 || errorMessage) && (
+          <div className="mentor-consolidated-error-card" role="alert" id="mentor-error-summary">
+            <div className="mentor-consolidated-error-header">
+              <div className="mentor-consolidated-error-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <div className="mentor-consolidated-error-title-wrap">
+                <h4 className="mentor-consolidated-error-title">
+                  {Object.keys(fieldErrors).length > 1
+                    ? `Please resolve the following ${Object.keys(fieldErrors).length} issues to continue:`
+                    : 'Please resolve the highlighted issue to continue:'}
+                </h4>
+                {errorMessage && <p className="mentor-consolidated-error-desc">{errorMessage}</p>}
+              </div>
+            </div>
+
+            {Object.keys(fieldErrors).length > 0 && (
+              <ul className="mentor-consolidated-error-list">
+                {Object.entries(fieldErrors).map(([key, msg]) => (
+                  <li key={key} className="mentor-consolidated-error-item">
+                    <button
+                      type="button"
+                      className="mentor-error-jump-link"
+                      onClick={() => scrollToField(key)}
+                    >
+                      <span>&bull;</span>
+                      <span>{msg}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -629,23 +700,36 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
 
             <form onSubmit={handleInformationContinue} className="mentor-form">
               {/* Full Name */}
-              <div className="form-field">
+              <div className={`form-field ${fieldErrors.fullName ? 'field-has-error' : ''}`}>
                 <label htmlFor="mentor-fullname" className="field-label">
                   <span>Full Name <span className="required-star">*</span></span>
                 </label>
                 <input
                   id="mentor-fullname"
                   type="text"
-                  className="input-control"
+                  className={`input-control ${fieldErrors.fullName ? 'has-error' : ''}`}
                   placeholder="e.g. Dr. K. Anand or Priya Sundaram"
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => {
+                    setFullName(e.target.value)
+                    clearFieldError('fullName')
+                  }}
                   required
                 />
+                {fieldErrors.fullName && (
+                  <div className="field-error-notice" role="alert">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{fieldErrors.fullName}</span>
+                  </div>
+                )}
               </div>
 
               {/* Phone Number with Country Code */}
-              <div className="form-field">
+              <div className={`form-field ${fieldErrors.phoneNumber ? 'field-has-error' : ''}`}>
                 <label htmlFor="mentor-phone" className="field-label">
                   <span>Phone Number <span className="required-star">*</span></span>
                 </label>
@@ -665,77 +749,142 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                     id="mentor-phone"
                     type="tel"
                     inputMode="numeric"
-                    className="input-control phone-input"
+                    className={`input-control phone-input ${fieldErrors.phoneNumber ? 'has-error' : ''}`}
                     placeholder="9876543210"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    onChange={(e) => {
+                      setPhoneNumber(e.target.value)
+                      clearFieldError('phoneNumber')
+                    }}
                     required
                   />
                 </div>
+                {fieldErrors.phoneNumber && (
+                  <div className="field-error-notice" role="alert">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{fieldErrors.phoneNumber}</span>
+                  </div>
+                )}
                 <span className="field-hint">Used for session notifications & coordinator contact</span>
               </div>
 
               {/* Working As A (Job Designation) */}
-              <div className="form-field">
+              <div className={`form-field ${fieldErrors.workingAs ? 'field-has-error' : ''}`}>
                 <label htmlFor="mentor-working-as" className="field-label">
                   <span>Working as a (Designation / Role) <span className="required-star">*</span></span>
                 </label>
                 <input
                   id="mentor-working-as"
                   type="text"
-                  className="input-control"
+                  className={`input-control ${fieldErrors.workingAs ? 'has-error' : ''}`}
                   placeholder="e.g. Senior Software Engineer, Lead AI Scientist, Product Director"
                   value={workingAs}
-                  onChange={(e) => setWorkingAs(e.target.value)}
+                  onChange={(e) => {
+                    setWorkingAs(e.target.value)
+                    clearFieldError('workingAs')
+                  }}
                   required
                 />
+                {fieldErrors.workingAs && (
+                  <div className="field-error-notice" role="alert">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{fieldErrors.workingAs}</span>
+                  </div>
+                )}
               </div>
 
               {/* Working In (Company / Organization) */}
-              <div className="form-field">
+              <div className={`form-field ${fieldErrors.workingIn ? 'field-has-error' : ''}`}>
                 <label htmlFor="mentor-working-in" className="field-label">
                   <span>Working in (Company / Organization) <span className="required-star">*</span></span>
                 </label>
                 <input
                   id="mentor-working-in"
                   type="text"
-                  className="input-control"
+                  className={`input-control ${fieldErrors.workingIn ? 'has-error' : ''}`}
                   placeholder="e.g. Zoho, Microsoft, Google, TCS, IIT Madras, Self-Employed"
                   value={workingIn}
-                  onChange={(e) => setWorkingIn(e.target.value)}
+                  onChange={(e) => {
+                    setWorkingIn(e.target.value)
+                    clearFieldError('workingIn')
+                  }}
                   required
                 />
+                {fieldErrors.workingIn && (
+                  <div className="field-error-notice" role="alert">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{fieldErrors.workingIn}</span>
+                  </div>
+                )}
               </div>
 
               {/* City and Region */}
               <div className="form-field-row">
-                <div className="form-field">
+                <div className={`form-field ${fieldErrors.city ? 'field-has-error' : ''}`}>
                   <label htmlFor="mentor-city" className="field-label">
                     <span>City <span className="required-star">*</span></span>
                   </label>
                   <input
                     id="mentor-city"
                     type="text"
-                    className="input-control"
+                    className={`input-control ${fieldErrors.city ? 'has-error' : ''}`}
                     placeholder="e.g. Chennai"
                     value={city}
-                    onChange={(e) => setCity(e.target.value)}
+                    onChange={(e) => {
+                      setCity(e.target.value)
+                      clearFieldError('city')
+                    }}
                     required
                   />
+                  {fieldErrors.city && (
+                    <div className="field-error-notice" role="alert">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span>{fieldErrors.city}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="form-field">
+                <div className={`form-field ${fieldErrors.region ? 'field-has-error' : ''}`}>
                   <label htmlFor="mentor-region" className="field-label">
                     <span>Region / State <span className="required-star">*</span></span>
                   </label>
                   <input
                     id="mentor-region"
                     type="text"
-                    className="input-control"
+                    className={`input-control ${fieldErrors.region ? 'has-error' : ''}`}
                     placeholder="e.g. Tamil Nadu"
                     value={region}
-                    onChange={(e) => setRegion(e.target.value)}
+                    onChange={(e) => {
+                      setRegion(e.target.value)
+                      clearFieldError('region')
+                    }}
                     required
                   />
+                  {fieldErrors.region && (
+                    <div className="field-error-notice" role="alert">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span>{fieldErrors.region}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -771,7 +920,10 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
 
             <form onSubmit={handleSkillsBioContinue} className="mentor-form">
               {/* 1. Technical Skills */}
-              <div className="form-field">
+              <div
+                className={`form-field ${fieldErrors.techSkills ? 'field-has-error' : ''}`}
+                id="mentor-tech-skills-section"
+              >
                 <div className="field-label-group">
                   <label className="field-label">
                     <span>Technical & Domain Skills <span className="required-star">*</span></span>
@@ -781,7 +933,18 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                   </span>
                 </div>
 
-                <div className="mentor-pills-cloud">
+                {fieldErrors.techSkills && (
+                  <div className="field-error-notice" role="alert" style={{ marginBottom: '10px', marginTop: '0' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{fieldErrors.techSkills}</span>
+                  </div>
+                )}
+
+                <div className={`mentor-pills-cloud ${fieldErrors.techSkills ? 'has-error' : ''}`}>
                   {POPULAR_TECH_SKILLS.map((sk) => {
                     const isSelected = selectedTechSkills.includes(sk)
                     return (
@@ -840,7 +1003,11 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
               </div>
 
               {/* 2. Soft Skills */}
-              <div className="form-field" style={{ marginTop: '22px' }}>
+              <div
+                className={`form-field ${fieldErrors.softSkills ? 'field-has-error' : ''}`}
+                id="mentor-soft-skills-section"
+                style={{ marginTop: '22px' }}
+              >
                 <div className="field-label-group">
                   <label className="field-label">
                     <span>Soft Skills & Mentorship Strengths <span className="required-star">*</span></span>
@@ -850,7 +1017,18 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                   </span>
                 </div>
 
-                <div className="mentor-pills-cloud">
+                {fieldErrors.softSkills && (
+                  <div className="field-error-notice" role="alert" style={{ marginBottom: '10px', marginTop: '0' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{fieldErrors.softSkills}</span>
+                  </div>
+                )}
+
+                <div className={`mentor-pills-cloud ${fieldErrors.softSkills ? 'has-error' : ''}`}>
                   {POPULAR_SOFT_SKILLS.map((ssk) => {
                     const isSelected = selectedSoftSkills.includes(ssk)
                     return (
@@ -909,24 +1087,45 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
               </div>
 
               {/* 3. Bio */}
-              <div className="form-field" style={{ marginTop: '22px' }}>
+              <div className={`form-field ${fieldErrors.bio ? 'field-has-error' : ''}`} style={{ marginTop: '22px' }}>
                 <div className="field-label-group">
                   <label htmlFor="mentor-bio" className="field-label">
                     <span>Professional Bio & Guidance Philosophy <span className="required-star">*</span></span>
                   </label>
-                  <span className="bio-char-counter">
+                  <span
+                    className="bio-char-counter"
+                    style={{
+                      color: fieldErrors.bio ? '#dc2626' : undefined,
+                      fontWeight: fieldErrors.bio ? 650 : undefined,
+                    }}
+                  >
                     {bio.length} characters (min 25)
                   </span>
                 </div>
                 <textarea
                   id="mentor-bio"
                   rows={4}
-                  className="input-control mentor-textarea"
+                  className={`input-control mentor-textarea ${fieldErrors.bio ? 'has-error' : ''}`}
                   placeholder="Share a short bio summarizing your professional career, key projects, and how you wish to mentor and guide students (minimum 25 characters)..."
                   value={bio}
-                  onChange={(e) => setBio(e.target.value)}
+                  onChange={(e) => {
+                    setBio(e.target.value)
+                    if (e.target.value.trim().length >= 25) {
+                      clearFieldError('bio')
+                    }
+                  }}
                   required
                 />
+                {fieldErrors.bio && (
+                  <div className="field-error-notice" role="alert">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{fieldErrors.bio}</span>
+                  </div>
+                )}
                 <span className="field-hint">
                   Students will read this on your mentor profile before requesting 1-on-1 mentorship sessions.
                 </span>
@@ -966,7 +1165,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
 
             <form onSubmit={handleFinalSubmit} className="mentor-form">
               {/* 1. LinkedIn URL (Mandatory) */}
-              <div className="form-field">
+              <div className={`form-field ${fieldErrors.linkedinUrl ? 'field-has-error' : ''}`}>
                 <label htmlFor="mentor-linkedin" className="field-label">
                   <span>LinkedIn Profile URL <span className="required-star">*</span></span>
                 </label>
@@ -977,18 +1176,35 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                   <input
                     id="mentor-linkedin"
                     type="url"
-                    className="input-control linkedin-control"
+                    className={`input-control linkedin-control ${fieldErrors.linkedinUrl ? 'has-error' : ''}`}
                     placeholder="https://www.linkedin.com/in/yourprofile"
                     value={linkedinUrl}
-                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                    onChange={(e) => {
+                      setLinkedinUrl(e.target.value)
+                      clearFieldError('linkedinUrl')
+                    }}
                     required
                   />
                 </div>
+                {fieldErrors.linkedinUrl && (
+                  <div className="field-error-notice" role="alert">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{fieldErrors.linkedinUrl}</span>
+                  </div>
+                )}
                 <span className="field-hint">Public LinkedIn profile for verification of your professional experience</span>
               </div>
 
               {/* 2. ID Card Upload (Mandatory) */}
-              <div className="form-field" style={{ marginTop: '20px' }}>
+              <div
+                className={`form-field ${fieldErrors.idCard ? 'field-has-error' : ''}`}
+                id="mentor-id-card-section"
+                style={{ marginTop: '20px' }}
+              >
                 <div className="field-label-group">
                   <label className="field-label">
                     <span>Work ID Card / Official Identification <span className="required-star">*</span></span>
@@ -996,9 +1212,20 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                   <span className="mandatory-badge">Mandatory Verification</span>
                 </div>
 
+                {fieldErrors.idCard && (
+                  <div className="field-error-notice" role="alert" style={{ marginBottom: '10px', marginTop: '0' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{fieldErrors.idCard}</span>
+                  </div>
+                )}
+
                 {!idCardPhotoUrl ? (
                   <div
-                    className={`mentor-upload-dropzone ${isDraggingId ? 'dragging' : ''}`}
+                    className={`mentor-upload-dropzone ${fieldErrors.idCard ? 'has-error' : ''} ${isDraggingId ? 'dragging' : ''}`}
                     onDragOver={(e) => {
                       e.preventDefault()
                       setIsDraggingId(true)
@@ -1052,18 +1279,6 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                       </button>
                     </div>
 
-                    <div className="upload-sample-divider">
-                      <span>or for quick evaluation</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="sample-upload-btn"
-                      onClick={handleUseSampleId}
-                      id="mentor-sample-id-btn"
-                    >
-                      Use Verified Work ID Sample
-                    </button>
                   </div>
                 ) : (
                   <div className="id-card-preview-box">
@@ -1103,7 +1318,11 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
               </div>
 
               {/* 3. Resume Upload (Mandatory) */}
-              <div className="form-field" style={{ marginTop: '20px' }}>
+              <div
+                className={`form-field ${fieldErrors.resume ? 'field-has-error' : ''}`}
+                id="mentor-resume-section"
+                style={{ marginTop: '20px' }}
+              >
                 <div className="field-label-group">
                   <label className="field-label">
                     <span>Resume / Curriculum Vitae <span className="required-star">*</span></span>
@@ -1111,9 +1330,20 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                   <span className="mandatory-badge">Mandatory Document</span>
                 </div>
 
+                {fieldErrors.resume && (
+                  <div className="field-error-notice" role="alert" style={{ marginBottom: '10px', marginTop: '0' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>{fieldErrors.resume}</span>
+                  </div>
+                )}
+
                 {!resumeUrl ? (
                   <div
-                    className="mentor-resume-dropzone"
+                    className={`mentor-resume-dropzone ${fieldErrors.resume ? 'has-error' : ''}`}
                     onClick={() => resumeInputRef.current?.click()}
                     id="mentor-browse-resume-card"
                   >

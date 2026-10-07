@@ -1,11 +1,11 @@
 import { createClient, type Session, type User } from '@supabase/supabase-js'
 
-const supabaseUrl =
+export const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
   import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
   ''
 
-const supabaseAnonKey =
+export const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
@@ -19,13 +19,24 @@ export const isSupabaseConfigured = Boolean(
   supabaseAnonKey !== 'your-supabase-anon-key'
 )
 
-// Supabase client instance
+// Primary Supabase client instance (persists user session)
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
+      },
+    })
+  : null
+
+// Unauthenticated Supabase client instance (does not attach user session JWT, auth.uid() is null for public/anon policies)
+export const anonSupabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
       },
     })
   : null

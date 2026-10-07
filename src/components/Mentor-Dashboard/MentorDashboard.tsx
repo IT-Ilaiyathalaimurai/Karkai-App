@@ -170,6 +170,7 @@ export const MentorDashboard: React.FC<MentorDashboardProps> = ({
           {activeTab === 'home' && (
             <HomeTab
               mentorData={mentorData}
+              user={user}
               onGiveVerificationAgain={onEditProfile}
               onViewProfile={() => setActiveTab('profile')}
             />

@@ -1,0 +1,470 @@
+/* ==========================================================================
+   Student Profile Viewer Modal Styles (Mentor Dashboard)
+   Aesthetic Matching MentorsTab Mentor Detail Modal • Slide-up Bottom Sheet
+   ========================================================================== */
+
+.student-profile-viewer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  animation: spvFadeIn 0.22s ease-out;
+}
+
+@keyframes spvFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.student-profile-viewer-card {
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  background: #ffffff;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  animation: spvSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  position: relative;
+}
+
+@keyframes spvSlideUp {
+  from {
+    transform: translateY(40px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Mobile Bottom Sheet conversion */
+@media (max-width: 640px) {
+  .student-profile-viewer-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .student-profile-viewer-card {
+    border-radius: 24px 24px 0 0;
+    max-height: 92vh;
+    max-height: 92dvh;
+    animation: spvSheetUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes spvSheetUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Drag indicator for mobile bottom sheet */
+.spv-drag-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  margin: 10px auto 2px;
+  flex-shrink: 0;
+}
+
+/* Modal Header */
+.spv-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.spv-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.spv-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7, #0f1e36);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+  position: relative;
+}
+
+.spv-avatar-status-dot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid #ffffff;
+}
+
+.spv-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.spv-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.spv-name {
+  margin: 0;
+  font-size: 17.5px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.spv-wing-badge {
+  font-size: 10.5px;
+  font-weight: 750;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.spv-wing-badge.school {
+  background: #fef9c3;
+  color: #a16207;
+  border: 1px solid #fde68a;
+}
+
+.spv-wing-badge.senior {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.spv-sub {
+  margin: 0;
+  font-size: 12.5px;
+  color: #64748b;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.35;
+}
+
+.spv-close-btn {
+  background: #f1f5f9;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.spv-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Modal Body */
+.spv-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+/* Loading state */
+.spv-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  color: #64748b;
+  gap: 12px;
+  text-align: center;
+}
+
+.spv-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: spvSpin 0.75s linear infinite;
+}
+
+@keyframes spvSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Sections */
+.spv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spv-section-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 750;
+  color: #0f1e36;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 500px) {
+  .spv-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.spv-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spv-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.spv-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.spv-val {
+  font-size: 13px;
+  font-weight: 650;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.spv-val.highlight {
+  color: #0284c7;
+}
+
+/* Chips Cloud */
+.spv-tags-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.spv-chip {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  line-height: 1.3;
+}
+
+.spv-chip.tech {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.spv-chip.soft {
+  background: #f3e8ff;
+  color: #7e22ce;
+  border: 1px solid #e9d5ff;
+}
+
+.spv-chip.interest {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.spv-chip.extra {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+/* Links & Buttons */
+.spv-actions-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.spv-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  color: #0f172a;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.spv-link-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.spv-link-btn.linkedin {
+  color: #0a66c2;
+  border-color: #0a66c2;
+  background: #eff6ff;
+}
+
+.spv-link-btn.resume {
+  color: #0f1e36;
+  border-color: #0f1e36;
+}
+
+/* Modal Footer */
+.spv-footer {
+  padding: 12px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.spv-footer-btn {
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.spv-footer-btn.close {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.spv-footer-btn.close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.spv-footer-btn.accept {
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 3px 10px rgba(22, 163, 74, 0.25);
+}
+
+.spv-footer-btn.accept:hover {
+  background: #15803d;
+}
+
+.spv-footer-btn.reject {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1.5px solid #fca5a5;
+}
+
+.spv-footer-btn.reject:hover {
+  background: #fef2f2;
+}
+
+.spv-footer-btn.chat {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+}
+
+.spv-footer-btn.chat:hover {
+  background: #1d4ed8;
+}
+
+@media (max-width: 480px) {
+  .spv-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+    padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+  .spv-footer-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

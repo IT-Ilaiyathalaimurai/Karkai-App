@@ -53,10 +53,14 @@
 
 @media (max-width: 480px) {
   .signin-wrapper {
-    padding: calc(14px + env(safe-area-inset-top, 0px)) 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px));
   }
 
   .signin-card {
+    margin: auto 0;
     padding: 24px 16px;
     border-radius: 20px;
   }

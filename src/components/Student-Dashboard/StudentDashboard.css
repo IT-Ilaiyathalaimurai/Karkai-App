@@ -23,24 +23,30 @@
    ========================================================================== */
 .student-dashboard-root {
   min-height: 100vh;
+  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   background: #0f172a;
   display: flex;
   justify-content: center;
   color: var(--dash-text-main);
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* Mobile Shell container: Perfectly centered on desktop/laptop, full-width on mobile */
 .dashboard-mobile-shell {
   width: 100%;
   max-width: 520px;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   background: #ffffff;
   display: flex;
   flex-direction: column;
   position: relative;
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
 }
 
 @media (max-width: 640px) {
@@ -106,6 +112,22 @@
   .topbar-wing-pill {
     font-size: 10px !important;
     padding: 2px 7px !important;
+  }
+}
+
+@media (max-width: 375px) {
+  .topbar-profile-label {
+    display: none;
+  }
+
+  .topbar-profile-trigger {
+    padding: 2px;
+    border-radius: 50%;
+  }
+
+  .topbar-logo {
+    height: 32px;
+    max-width: 95px;
   }
 }
 
@@ -249,6 +271,7 @@
    ========================================================================== */
 .dashboard-main-content {
   flex: 1;
+  min-height: 0;
   padding: 16px 16px calc(76px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
@@ -358,7 +381,17 @@
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
   transition: color 0.2s ease, font-weight 0.2s ease;
+}
+
+@media (max-width: 360px) {
+  .bottom-tab-label {
+    font-size: 9.5px;
+  }
 }
 
 .bottom-tab-item.active .bottom-tab-label {
@@ -3388,6 +3421,24 @@
   align-items: center;
   gap: 8px;
   width: 100%;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 440px) {
+  .mentor-connect-actions-row {
+    gap: 6px;
+  }
+
+  .mentor-view-profile-btn {
+    flex: 1 1 auto;
+    min-height: 40px;
+    justify-content: center;
+  }
+
+  .mentor-pending-actions-wrap {
+    flex: 2 1 auto;
+    width: 100%;
+  }
 }
 
 .mentor-view-profile-btn {
@@ -4244,6 +4295,388 @@
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   STUDENT MENTORS TAB — Mentorship Request Withdrawal Styles
+   ========================================================================== */
+
+/* Pulsing Status Dot */
+.mentor-pending-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+  animation: mentorPulseAnim 1.8s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes mentorPulseAnim {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(22, 163, 74, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
+  }
+}
+
+/* Pending Feedback Card on Mentor Item */
+.mentor-pending-feedback-card {
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  border-radius: 11px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pending-feedback-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pending-feedback-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #15803d;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.pending-feedback-text {
+  margin: 0;
+  font-size: 12px;
+  color: #166534;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* Mentor Card Actions Pending Group */
+.mentor-pending-actions-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mentor-pending-actions-wrap .mentor-request-btn.requested {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Card & Modal Withdraw Buttons */
+.mentor-withdraw-btn {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1.5px solid #fecaca;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.06);
+}
+
+.mentor-withdraw-btn:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.mentor-withdraw-btn:active {
+  transform: scale(0.97);
+}
+
+/* Detail Modal Pending Actions */
+.mentor-detail-modal-pending-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mentor-detail-withdraw-btn {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1.5px solid #fecaca;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.mentor-detail-withdraw-btn:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+
+.mentor-detail-withdraw-btn:active {
+  transform: scale(0.98);
+}
+
+/* Withdrawal Confirmation Modal */
+.mentor-withdraw-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeInModal 0.2s ease;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.mentor-withdraw-confirm-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  max-width: 440px;
+  width: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.35);
+  animation: scaleUpModal 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+@keyframes scaleUpModal {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.withdraw-modal-icon-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fee2e2;
+  border: 4px solid #fef2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.withdraw-modal-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px;
+  letter-spacing: -0.2px;
+}
+
+.withdraw-modal-desc {
+  font-size: 13.5px;
+  color: #475569;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.withdraw-modal-notice-box {
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.45;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.withdraw-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.withdraw-modal-cancel-btn {
+  flex: 1;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.withdraw-modal-cancel-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.withdraw-modal-confirm-btn {
+  flex: 1;
+  background: #dc2626;
+  border: none;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+}
+
+.withdraw-modal-confirm-btn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.withdraw-modal-confirm-btn:disabled,
+.withdraw-modal-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mentors-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+/* Toast Notification Notice */
+.mentors-toast-notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11000;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  animation: toastSlideDownAnim 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 90vw;
+  width: max-content;
+}
+
+@keyframes toastSlideDownAnim {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.mentors-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mentors-toast-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  transition: color 0.15s ease;
+}
+
+.mentors-toast-close:hover {
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .mentor-withdraw-confirm-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .mentor-withdraw-confirm-modal {
+    border-radius: 24px 24px 0 0;
+    max-height: 90vh;
+    animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (max-width: 440px) {
+    .withdraw-modal-actions {
+      flex-direction: column-reverse;
+      gap: 8px;
+    }
+    .withdraw-modal-cancel-btn,
+    .withdraw-modal-confirm-btn {
+      width: 100%;
+      min-height: 44px;
+      justify-content: center;
+    }
+    .mentor-pending-actions-wrap {
+      flex-wrap: wrap;
+    }
+    .mentor-withdraw-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
 
 
 

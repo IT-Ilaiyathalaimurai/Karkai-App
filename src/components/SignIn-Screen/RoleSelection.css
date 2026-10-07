@@ -41,10 +41,14 @@
 
 @media (max-width: 640px) {
   .roles-wrapper {
-    padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px));
   }
 
   .roles-card {
+    margin: auto 0;
     padding: 20px 14px 24px;
     border-radius: 18px;
   }

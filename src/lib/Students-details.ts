@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabase'
+import { supabase, anonSupabase, supabaseUrl, supabaseAnonKey, isSupabaseConfigured } from './supabase'
 import type { StudentProfileData } from '../components/Students-Onboarding'
 
 export const STUDENT_TABLE_NAME = 'Student-details'
@@ -621,6 +621,293 @@ export async function getStudentDetails(
 }
 
 /**
+ * Normalizes a raw Student-details record (merging top-level table columns with raw_data JSONB).
+ */
+export function normalizeStudentPayload(raw: any): StudentDetailsPayload | null {
+  if (!raw) return null
+  const rd = raw.raw_data && typeof raw.raw_data === 'object' ? raw.raw_data : {}
+  const parentConsent = rd.parentConsent && typeof rd.parentConsent === 'object' ? rd.parentConsent : {}
+
+  const isMinorVal =
+    raw.is_minor !== undefined && raw.is_minor !== null
+      ? Boolean(raw.is_minor)
+      : rd.isMinor !== undefined && rd.isMinor !== null
+      ? Boolean(rd.isMinor)
+      : raw.age
+      ? Number(raw.age) < 18
+      : false
+
+  const wingVal =
+    raw.wing ||
+    (isMinorVal ? 'school' : rd.wing || (rd.institutionName?.toLowerCase().includes('school') ? 'school' : 'senior'))
+
+  return {
+    id: raw.id || rd.id,
+    user_id: raw.user_id || rd.userId || rd.user_id,
+    full_name: raw.full_name || rd.fullName || rd.full_name || 'Student',
+    mobile_number: raw.mobile_number || rd.mobileNumber || rd.mobile_number || '',
+    country_code: raw.country_code || rd.countryCode || rd.country_code || '+91',
+    date_of_birth: raw.date_of_birth || rd.dateOfBirth || rd.date_of_birth || '',
+    age: Number(raw.age || rd.age || 0),
+    is_minor: isMinorVal,
+    wing: wingVal,
+    gender: raw.gender || rd.gender || '',
+    city: raw.city || rd.city || '',
+    district: raw.district || rd.district || '',
+    state: raw.state || rd.state || 'Tamil Nadu',
+
+    // School Wing: Parent Consent
+    parent_name: raw.parent_name || parentConsent.parentName || rd.parentName || null,
+    parent_relationship: raw.parent_relationship || parentConsent.relationship || rd.parentRelationship || null,
+    parent_mobile: raw.parent_mobile || parentConsent.parentMobile || rd.parentMobile || null,
+    parent_consent_given:
+      raw.parent_consent_given !== undefined && raw.parent_consent_given !== null
+        ? raw.parent_consent_given
+        : parentConsent.consentGiven !== undefined && parentConsent.consentGiven !== null
+        ? parentConsent.consentGiven
+        : rd.parentConsentGiven ?? null,
+
+    // Senior Wing: Schooling (10th & 12th)
+    tenth_school_name: raw.tenth_school_name || rd.tenthSchoolName || null,
+    tenth_marks: raw.tenth_marks || rd.tenthMarks || null,
+    tenth_percentage: raw.tenth_percentage || rd.tenthPercentage || null,
+    twelfth_school_name: raw.twelfth_school_name || rd.twelfthSchoolName || null,
+    twelfth_marks: raw.twelfth_marks || rd.twelfthMarks || null,
+    twelfth_percentage: raw.twelfth_percentage || rd.twelfthPercentage || null,
+
+    medium_of_study: raw.medium_of_study || rd.mediumOfStudy || null,
+
+    // Academic / School Details
+    institution_name: raw.institution_name || rd.institutionName || 'Not specified',
+    degree: raw.degree || rd.degree || (isMinorVal ? 'School Student' : 'College Student'),
+    custom_degree: raw.custom_degree || rd.customDegree || null,
+    branch: raw.branch || rd.branch || '',
+    current_year: raw.current_year || rd.currentYear || '',
+    current_cgpa: raw.current_cgpa || rd.currentCgpa || rd.cgpa || null,
+
+    // Skills & Activities
+    skills:
+      Array.isArray(raw.skills) && raw.skills.length > 0
+        ? raw.skills
+        : Array.isArray(rd.skills) && rd.skills.length > 0
+        ? rd.skills
+        : [],
+    soft_skills:
+      Array.isArray(raw.soft_skills) && raw.soft_skills.length > 0
+        ? raw.soft_skills
+        : Array.isArray(rd.softSkills) && rd.softSkills.length > 0
+        ? rd.softSkills
+        : [],
+    learning_interests:
+      Array.isArray(raw.learning_interests) && raw.learning_interests.length > 0
+        ? raw.learning_interests
+        : Array.isArray(rd.learningInterests) && rd.learningInterests.length > 0
+        ? rd.learningInterests
+        : [],
+    extracurricular_activities:
+      Array.isArray(raw.extracurricular_activities) && raw.extracurricular_activities.length > 0
+        ? raw.extracurricular_activities
+        : Array.isArray(rd.extracurricularActivities) && rd.extracurricularActivities.length > 0
+        ? rd.extracurricularActivities
+        : [],
+
+    linkedin_url: raw.linkedin_url || rd.linkedinUrl || null,
+    resume_url: raw.resume_url || rd.resumeUrl || null,
+    resume_file_name: raw.resume_file_name || rd.resumeFileName || null,
+    raw_data: rd,
+    created_at: raw.created_at,
+    updated_at: raw.updated_at,
+  }
+}
+
+/**
+ * Fetch helper directly via Supabase REST API using anon headers
+ * (so auth.uid() is NULL, which matches RLS: auth.uid() = user_id OR auth.uid() IS NULL)
+ */
+async function fetchStudentAnonRest(queryString: string): Promise<any[] | null> {
+  if (!supabaseUrl || !supabaseAnonKey) return null
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/${STUDENT_TABLE_NAME}?${queryString}`, {
+      method: 'GET',
+      headers: {
+        apikey: supabaseAnonKey,
+        Authorization: `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+      },
+    })
+    if (!res.ok) return null
+    const json = await res.json()
+    return Array.isArray(json) ? json : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Fetch full student profile for a mentor reviewing a request.
+ * Tries querying by user_id, id, full_name, or cached local profile.
+ * Uses unauthenticated client & anon REST headers so the mentor's JWT does not block reads via RLS.
+ */
+export async function getStudentProfileForMentor(
+  userId?: string | null,
+  studentName?: string | null
+): Promise<StudentDetailsPayload | null> {
+  const fallbackCached = () => {
+    const cached = getCachedStudentProfile(userId || studentName || undefined)
+    if (cached) {
+      return normalizeStudentPayload({
+        full_name: cached.fullName,
+        mobile_number: cached.mobileNumber,
+        country_code: cached.countryCode,
+        date_of_birth: cached.dateOfBirth,
+        age: cached.age,
+        is_minor: cached.isMinor,
+        wing: cached.isMinor ? 'school' : 'senior',
+        gender: cached.gender,
+        city: cached.city,
+        district: cached.district,
+        state: cached.state || 'Tamil Nadu',
+        institution_name: cached.institutionName,
+        degree: cached.degree,
+        branch: cached.branch,
+        current_year: cached.currentYear,
+        current_cgpa: (cached as any).currentCgpa || (cached as any).cgpa,
+        skills: cached.skills,
+        soft_skills: cached.softSkills,
+        learning_interests: cached.learningInterests,
+        extracurricular_activities: cached.extracurricularActivities,
+        linkedin_url: (cached as any).linkedinUrl,
+        resume_url: (cached as any).resumeUrl,
+        parent_name: (cached as any).parentName,
+        parent_relationship: (cached as any).parentRelationship,
+        parent_mobile: (cached as any).parentMobile,
+        parent_consent_given: (cached as any).parentConsentGiven,
+        tenth_school_name: (cached as any).tenthSchoolName,
+        tenth_marks: (cached as any).tenthMarks,
+        tenth_percentage: (cached as any).tenthPercentage,
+        twelfth_school_name: (cached as any).twelfthSchoolName,
+        twelfth_marks: (cached as any).twelfthMarks,
+        twelfth_percentage: (cached as any).twelfthPercentage,
+        medium_of_study: (cached as any).mediumOfStudy,
+        raw_data: cached as any,
+      })
+    }
+    return null
+  }
+
+  const clientToUse = anonSupabase || supabase
+
+  if (!isSupabaseConfigured) {
+    return fallbackCached()
+  }
+
+  try {
+    // 1. Try querying by user_id or id
+    if (userId && userId.trim()) {
+      const cleanUserId = userId.trim()
+
+      // 1a. Try unauthenticated REST API
+      const restUserMatch = await fetchStudentAnonRest(`user_id=eq.${encodeURIComponent(cleanUserId)}&select=*`)
+      if (restUserMatch && restUserMatch.length > 0) {
+        return normalizeStudentPayload(restUserMatch[0])
+      }
+
+      // 1b. Try id = cleanUserId
+      const restIdMatch = await fetchStudentAnonRest(`id=eq.${encodeURIComponent(cleanUserId)}&select=*`)
+      if (restIdMatch && restIdMatch.length > 0) {
+        return normalizeStudentPayload(restIdMatch[0])
+      }
+
+      // 1c. Try via clientToUse
+      if (clientToUse) {
+        const { data, error } = await clientToUse
+          .from(STUDENT_TABLE_NAME)
+          .select('*')
+          .eq('user_id', cleanUserId)
+          .maybeSingle()
+        if (!error && data) return normalizeStudentPayload(data)
+
+        const { data: byId } = await clientToUse
+          .from(STUDENT_TABLE_NAME)
+          .select('*')
+          .eq('id', cleanUserId)
+          .maybeSingle()
+        if (byId) return normalizeStudentPayload(byId)
+      }
+    }
+
+    // 2. Try querying by student full_name
+    if (studentName && studentName.trim()) {
+      const cleanName = studentName.trim()
+
+      // 2a. Direct anon REST exact match
+      const restNameMatch = await fetchStudentAnonRest(`full_name=ilike.${encodeURIComponent(cleanName)}&select=*`)
+      if (restNameMatch && restNameMatch.length > 0) {
+        return normalizeStudentPayload(restNameMatch[0])
+      }
+
+      // 2b. Direct anon REST wildcard match (e.g. *Tharun*)
+      const restWildcardMatch = await fetchStudentAnonRest(`full_name=ilike.*${encodeURIComponent(cleanName)}*&select=*`)
+      if (restWildcardMatch && restWildcardMatch.length > 0) {
+        return normalizeStudentPayload(restWildcardMatch[0])
+      }
+
+      // 2c. Direct anon REST first name wildcard
+      const firstName = cleanName.split(' ')[0]
+      if (firstName && firstName.length >= 3) {
+        const restFirstMatch = await fetchStudentAnonRest(`full_name=ilike.*${encodeURIComponent(firstName)}*&select=*`)
+        if (restFirstMatch && restFirstMatch.length > 0) {
+          return normalizeStudentPayload(restFirstMatch[0])
+        }
+      }
+
+      // 2d. Try clientToUse
+      if (clientToUse) {
+        const { data } = await clientToUse
+          .from(STUDENT_TABLE_NAME)
+          .select('*')
+          .ilike('full_name', cleanName)
+          .limit(1)
+        if (data && data.length > 0) return normalizeStudentPayload(data[0])
+
+        const { data: dataWild } = await clientToUse
+          .from(STUDENT_TABLE_NAME)
+          .select('*')
+          .ilike('full_name', `%${cleanName}%`)
+          .limit(1)
+        if (dataWild && dataWild.length > 0) return normalizeStudentPayload(dataWild[0])
+      }
+    }
+
+    // 3. Fallback: Fetch all student rows via REST or client and match in-memory
+    const allStudents =
+      (await fetchStudentAnonRest('select=*&limit=100')) ||
+      (clientToUse ? (await clientToUse.from(STUDENT_TABLE_NAME).select('*').limit(100)).data : null)
+
+    if (allStudents && allStudents.length > 0) {
+      if (userId) {
+        const matchedById = allStudents.find((s: any) => s.user_id === userId || s.id === userId)
+        if (matchedById) return normalizeStudentPayload(matchedById)
+      }
+      if (studentName && studentName.trim()) {
+        const lowerSearch = studentName.trim().toLowerCase()
+        const matchedByName = allStudents.find((s: any) => {
+          const sName = (s.full_name || s.raw_data?.fullName || '').toLowerCase()
+          return sName === lowerSearch || sName.includes(lowerSearch) || lowerSearch.includes(sName)
+        })
+        if (matchedByName) return normalizeStudentPayload(matchedByName)
+      }
+    }
+
+    // 4. Fallback: check cached student profile
+    return fallbackCached()
+  } catch (err) {
+    console.warn('Error in getStudentProfileForMentor:', err)
+    return fallbackCached()
+  }
+}
+
+/**
  * SQL Schema definition for the 'Student-details' table and 'Students-assets' storage bucket.
  * This can be run in the Supabase SQL Editor.
  */
@@ -691,6 +978,12 @@ CREATE POLICY "Users can manage own student details"
   FOR ALL
   USING (auth.uid() = user_id OR auth.uid() IS NULL)
   WITH CHECK (auth.uid() = user_id OR auth.uid() IS NULL);
+
+-- Allow authenticated users (such as mentors) to read student profiles
+CREATE POLICY "Allow read student profiles"
+  ON "Student-details"
+  FOR SELECT
+  USING (true);
 
 -- 2. Create the 'Students-assets' storage bucket (if not already existing)
 INSERT INTO storage.buckets (id, name, public)

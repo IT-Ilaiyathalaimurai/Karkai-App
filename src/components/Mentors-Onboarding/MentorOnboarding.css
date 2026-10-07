@@ -6,18 +6,21 @@
 
 /* Main Fullpage Viewport Wrapper */
 .mentor-onboarding-wrapper {
+  min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   background-color: #f8fafc;
-  padding: env(safe-area-inset-top, 24px) 20px env(safe-area-inset-bottom, 24px);
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px calc(48px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #0f172a;
   position: relative;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Card Container */
@@ -47,14 +50,16 @@
 
 @media (max-width: 520px) {
   .mentor-onboarding-wrapper {
-    padding: calc(8px + env(safe-area-inset-top, 0px)) 10px calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 8px calc(48px + env(safe-area-inset-bottom, 0px));
   }
 
   .mentor-onboarding-card {
-    padding: 20px 14px;
+    padding: 20px 12px;
     border-radius: 18px;
     box-shadow: none;
     border: 1px solid #e2e8f0;
+    width: 100%;
+    max-width: 100%;
   }
 
   .mentor-btn-primary,
@@ -62,6 +67,7 @@
   .mentor-btn-submit {
     min-height: 48px;
     font-size: 15px;
+    width: 100%;
   }
 }
 
@@ -183,6 +189,16 @@
   white-space: nowrap;
 }
 
+@media (max-width: 520px) {
+  .mentor-step-node-label {
+    white-space: normal;
+    text-align: center;
+    max-width: 80px;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+}
+
 .mentor-step-item.active .mentor-step-node-label {
   color: #0f1e36;
   font-weight: 700;
@@ -220,6 +236,141 @@
 .mentor-alert-box svg {
   flex-shrink: 0;
   margin-top: 1px;
+}
+
+/* Consolidated Error Summary Card (Top) */
+.mentor-consolidated-error-card {
+  background: #fff5f5;
+  border: 1.5px solid #fca5a5;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 22px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.08);
+  animation: mentorFadeIn 0.25s ease;
+}
+
+.mentor-consolidated-error-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mentor-consolidated-error-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.mentor-consolidated-error-title-wrap {
+  flex: 1;
+}
+
+.mentor-consolidated-error-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #991b1b;
+  line-height: 1.4;
+}
+
+.mentor-consolidated-error-desc {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #b91c1c;
+  line-height: 1.4;
+}
+
+.mentor-consolidated-error-list {
+  list-style: none;
+  margin: 10px 0 0 0;
+  padding: 10px 0 0 0;
+  border-top: 1px dashed #fecaca;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.mentor-consolidated-error-item {
+  margin: 0;
+  padding: 0;
+}
+
+.mentor-error-jump-link {
+  background: none;
+  border: none;
+  padding: 3px 6px;
+  margin: 0;
+  font-size: 13px;
+  color: #b91c1c;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  line-height: 1.35;
+}
+
+.mentor-error-jump-link:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #7f1d1d;
+  text-decoration: underline;
+}
+
+/* Inline Field / Section Error Notice */
+.field-error-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-top: 6px;
+  animation: mentorFadeIn 0.2s ease;
+}
+
+.field-error-notice svg {
+  flex-shrink: 0;
+  color: #dc2626;
+}
+
+/* Error States for Inputs & Containers */
+.input-control.has-error {
+  border-color: #ef4444 !important;
+  background-color: #fffafb !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
+.mentor-pills-cloud.has-error {
+  border: 1.5px dashed #fca5a5 !important;
+  background: #fff8f8;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+}
+
+.mentor-upload-dropzone.has-error,
+.mentor-resume-dropzone.has-error {
+  border-color: #ef4444 !important;
+  background: #fff8f8 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.form-field.field-has-error > .field-label span:first-child {
+  color: #dc2626;
 }
 
 /* Section Header */
@@ -637,46 +788,6 @@
   background: #1e293b;
 }
 
-.upload-sample-divider {
-  display: flex;
-  align-items: center;
-  margin: 14px 0 8px;
-  width: 100%;
-  max-width: 220px;
-}
-
-.upload-sample-divider::before,
-.upload-sample-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: #e2e8f0;
-}
-
-.upload-sample-divider span {
-  padding: 0 10px;
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.sample-upload-btn {
-  background: transparent;
-  border: none;
-  color: #2563eb;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  transition: color 0.15s ease;
-}
-
-.sample-upload-btn:hover {
-  color: #1d4ed8;
-}
 
 /* ID Card Attached Preview */
 .id-card-preview-box {
@@ -728,6 +839,8 @@
   padding: 10px 14px;
   background: #ffffff;
   border-top: 1px solid #e2e8f0;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .preview-filename-text {
@@ -737,12 +850,15 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 220px;
+  max-width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .preview-btns-group {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .preview-btn {
@@ -785,6 +901,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
 }
 
 .resume-left-info {
@@ -792,6 +909,8 @@
   align-items: center;
   gap: 12px;
   overflow: hidden;
+  min-width: 0;
+  flex: 1;
 }
 
 .resume-doc-icon {
@@ -814,7 +933,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 260px;
+  max-width: 100%;
 }
 
 .resume-size-text {

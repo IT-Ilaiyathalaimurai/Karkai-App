@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabase'
+import { supabase, anonSupabase, isSupabaseConfigured } from './supabase'
 import type { StudentProfileData } from '../components/Students-Onboarding'
 import type { MentorProfileData } from './Mentors-details'
 import type { UserProfile } from '../components/SignIn-Screen'
@@ -33,7 +33,7 @@ export interface MentorMenteeConnection {
 // Local-storage cache helpers
 // ---------------------------------------------------------------------------
 
-function getCachedConnections(): MentorMenteeConnection[] {
+export function getCachedConnections(): MentorMenteeConnection[] {
   try {
     const raw = localStorage.getItem(CONNECTIONS_CACHE_KEY)
     return raw ? JSON.parse(raw) : []
@@ -323,3 +323,86 @@ export async function updateConnectionStatus(
 
   return { success: true }
 }
+
+// ---------------------------------------------------------------------------
+// Withdraw mentorship request (student cancels a pending request)
+// ---------------------------------------------------------------------------
+
+export async function withdrawMentorshipRequest(
+  connectionId: string,
+  mentorName?: string,
+  studentName?: string
+): Promise<{ success: boolean; error?: string }> {
+  // 1. Remove from local cache immediately
+  const cachedList = getCachedConnections()
+  const updatedCache = cachedList.filter((c) => {
+    if (connectionId && c.id === connectionId) return false
+    if (mentorName && studentName) {
+      const mentorMatches = c.mentor_name?.trim().toLowerCase() === mentorName.trim().toLowerCase()
+      const studentMatches = c.student_name?.trim().toLowerCase() === studentName.trim().toLowerCase()
+      if (mentorMatches && studentMatches) return false
+    }
+    return true
+  })
+  saveCachedConnections(updatedCache)
+
+  // 2. Delete record from Supabase
+  if (supabase && isSupabaseConfigured) {
+    try {
+      let deleted = false
+
+      // Try deletion by ID (if not a temporary local ID)
+      if (connectionId && !connectionId.startsWith('conn-')) {
+        const { error: idErr } = await supabase
+          .from(CONNECTIONS_TABLE_NAME)
+          .delete()
+          .eq('id', connectionId)
+
+        if (!idErr) {
+          deleted = true
+        } else {
+          console.warn('[Connections] Primary delete by id notice:', idErr.message)
+        }
+      }
+
+      // Try deletion by mentor_name and student_name
+      if (!deleted && mentorName && studentName) {
+        const { error: nameErr } = await supabase
+          .from(CONNECTIONS_TABLE_NAME)
+          .delete()
+          .ilike('mentor_name', mentorName.trim())
+          .ilike('student_name', studentName.trim())
+
+        if (!nameErr) {
+          deleted = true
+        } else {
+          console.warn('[Connections] Primary delete by names notice:', nameErr.message)
+        }
+      }
+
+      // 3. Fallback: try anonSupabase if RLS blocked the main client
+      if (!deleted && anonSupabase) {
+        if (connectionId && !connectionId.startsWith('conn-')) {
+          await anonSupabase
+            .from(CONNECTIONS_TABLE_NAME)
+            .delete()
+            .eq('id', connectionId)
+        }
+        if (mentorName && studentName) {
+          await anonSupabase
+            .from(CONNECTIONS_TABLE_NAME)
+            .delete()
+            .ilike('mentor_name', mentorName.trim())
+            .ilike('student_name', studentName.trim())
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.warn('Supabase delete error in withdrawMentorshipRequest:', msg)
+      return { success: true, error: msg }
+    }
+  }
+
+  return { success: true }
+}
+

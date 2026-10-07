@@ -1,0 +1,465 @@
+/* ==========================================================================
+   MentorReviewTaskModal Stylesheet — Mobile-First Bottom Sheet & Modal
+   ========================================================================== */
+
+.review-task-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: rtmFadeIn 0.2s ease-out;
+  box-sizing: border-box;
+}
+
+@keyframes rtmFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.review-task-card {
+  width: 100%;
+  max-width: 540px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow: hidden;
+  position: relative;
+  animation: rtmScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #e2e8f0;
+}
+
+@keyframes rtmScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mobile Bottom Sheet conversion */
+@media (max-width: 640px) {
+  .review-task-backdrop {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .review-task-card {
+    border-radius: 24px 24px 0 0 !important;
+    max-height: 92vh !important;
+    max-height: 92dvh !important;
+    animation: rtmSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  @keyframes rtmSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+}
+
+.rtm-drag-handle {
+  width: 40px;
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 999px;
+  margin: 10px auto 2px;
+  flex-shrink: 0;
+}
+
+/* Header */
+.rtm-header {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rtm-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rtm-header-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #f0fdf4;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rtm-header-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.rtm-header-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.rtm-close-btn {
+  background: #f1f5f9;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.rtm-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Body */
+.rtm-body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+/* Submission Card Overview */
+.rtm-submission-box {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rtm-student-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rtm-student-name {
+  font-size: 14.5px;
+  font-weight: 750;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rtm-timing-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rtm-timing-badge.on-time {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.rtm-timing-badge.late {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.rtm-task-headline {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Reviewable Link Row */
+.rtm-link-panel {
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rtm-link-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.rtm-link-label {
+  font-size: 11px;
+  font-weight: 750;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rtm-link-url-text {
+  font-size: 13px;
+  color: #1d4ed8;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rtm-open-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #1d4ed8;
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  min-height: 38px;
+}
+
+.rtm-open-link-btn:hover {
+  background: #1e40af;
+  transform: translateY(-1px);
+}
+
+/* Student Notes Box */
+.rtm-notes-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rtm-notes-label {
+  font-size: 11px;
+  font-weight: 750;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.rtm-notes-text {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.45;
+  font-style: italic;
+  word-break: break-word;
+}
+
+/* Star Rating */
+.rtm-rating-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.rtm-star-btn {
+  background: none;
+  border: none;
+  font-size: 26px;
+  cursor: pointer;
+  color: #cbd5e1;
+  transition: all 0.15s ease;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.rtm-star-btn.active {
+  color: #f59e0b;
+}
+
+.rtm-star-btn:hover {
+  transform: scale(1.15);
+}
+
+/* Form inputs */
+.rtm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rtm-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rtm-label .req {
+  color: #dc2626;
+}
+
+.rtm-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+  outline: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+  min-height: 100px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.rtm-textarea:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.rtm-hint {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+/* Error message */
+.rtm-error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* Footer */
+.rtm-footer {
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #f1f5f9;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.rtm-cancel-btn {
+  padding: 10px 16px;
+  border-radius: 11px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+  transition: all 0.15s ease;
+}
+
+.rtm-cancel-btn:hover {
+  background: #f1f5f9;
+}
+
+.rtm-submit-btn {
+  padding: 10px 20px;
+  border-radius: 11px;
+  border: none;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+  transition: all 0.15s ease;
+}
+
+.rtm-submit-btn:hover:not(:disabled) {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.rtm-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .rtm-textarea {
+    font-size: 16px !important;
+  }
+
+  .rtm-footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .rtm-cancel-btn,
+  .rtm-submit-btn {
+    width: 100%;
+  }
+
+  .rtm-link-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rtm-open-link-btn {
+    width: 100%;
+  }
+}

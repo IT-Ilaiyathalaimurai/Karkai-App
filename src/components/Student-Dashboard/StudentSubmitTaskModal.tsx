@@ -143,28 +143,86 @@ export const StudentSubmitTaskModal: React.FC<StudentSubmitTaskModalProps> = ({
 
           {/* Reviewable Link */}
           <div className="stm-field">
-            <label className="stm-label" htmlFor="stm-link-input">
-              Reviewable Link (GitHub / Figma / Docs / Live App)
-            </label>
-            <input
-              id="stm-link-input"
-              type="url"
-              className="stm-input"
-              placeholder="https://github.com/your-username/your-repo"
-              value={submissionLink}
-              onChange={(e) => setSubmissionLink(e.target.value)}
-              disabled={isSubmitting}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label className="stm-label" htmlFor="stm-link-input">
+                Reviewable Link
+              </label>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>Supported platforms:</span>
+            </div>
+
+            {/* Platform indicator chips */}
+            <div className="stm-platform-chips-row">
+              {[
+                { label: 'GitHub', prefix: 'https://github.com/' },
+                { label: 'Figma', prefix: 'https://figma.com/' },
+                { label: 'Google Drive', prefix: 'https://drive.google.com/' },
+                { label: 'Loom Video', prefix: 'https://loom.com/share/' },
+                { label: 'Live Link', prefix: 'https://' },
+              ].map((plat, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className="stm-platform-chip"
+                  onClick={() => {
+                    if (!submissionLink) {
+                      setSubmissionLink(plat.prefix)
+                    }
+                  }}
+                  disabled={isSubmitting}
+                >
+                  {plat.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="stm-input-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="stm-input-icon">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+              <input
+                id="stm-link-input"
+                type="url"
+                className="stm-input has-icon"
+                placeholder="https://github.com/your-username/your-repo"
+                value={submissionLink}
+                onChange={(e) => setSubmissionLink(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
             <span className="stm-hint">
-              Your mentor will directly open this link to test and evaluate your work.
+              Your mentor will open this link to test, inspect, and evaluate your work.
             </span>
           </div>
 
           {/* Submission Notes */}
           <div className="stm-field">
-            <label className="stm-label" htmlFor="stm-notes-input">
-              Submission Notes / Summary of Work
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label className="stm-label" htmlFor="stm-notes-input">
+                Submission Notes / Summary
+              </label>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>Quick templates below:</span>
+            </div>
+
+            {/* Quick Note Presets */}
+            <div className="stm-note-presets-row">
+              {[
+                'Completed all requirements. Ready for mentor feedback!',
+                'Built responsive layout. Please test on mobile viewport.',
+                'Implemented feature and tested main user workflows.',
+              ].map((notePreset, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className="stm-note-chip"
+                  onClick={() => setSubmissionNotes(notePreset)}
+                  disabled={isSubmitting}
+                >
+                  <span>"{notePreset.substring(0, 30)}..."</span>
+                </button>
+              ))}
+            </div>
+
             <textarea
               id="stm-notes-input"
               className="stm-textarea"

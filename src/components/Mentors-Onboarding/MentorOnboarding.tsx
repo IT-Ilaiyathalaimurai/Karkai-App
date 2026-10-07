@@ -5,6 +5,7 @@ import {
   uploadMentorAsset,
   type MentorProfileData,
 } from '../../lib/Mentors-details'
+import { sendWelcomeEmail } from '../../lib/send-welcome-email'
 import {
   getMentorDraft,
   saveMentorDraft,
@@ -470,6 +471,16 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
       const saveRes = await saveMentorDetails(mentorProfile, user?.id, user?.email)
       if (!saveRes.success) {
         throw new Error(saveRes.error || 'Failed to persist mentor profile in database.')
+      }
+
+      // Send welcome onboarding email via Gmail SMTP
+      const mentorEmail = user?.email || (mentorProfile as any).email
+      if (mentorEmail) {
+        sendWelcomeEmail({
+          email: mentorEmail,
+          name: mentorProfile.fullName,
+          role: 'mentor',
+        }).catch((e) => console.warn('Mentor welcome email trigger notice:', e))
       }
 
       setSuccessNotice('Mentor profile successfully registered!')

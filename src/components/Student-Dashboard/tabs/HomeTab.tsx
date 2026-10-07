@@ -126,6 +126,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({ studentData, user }) => {
     return { label: `⏱️ Due in ${days} day${days > 1 ? 's' : ''}`, isOverdue: false }
   }
 
+  const getPlatformBadge = (url?: string | null) => {
+    if (!url) return null
+    const lower = url.toLowerCase()
+    if (lower.includes('github.com')) return { name: 'GitHub', color: '#24292f', bg: '#f6f8fa' }
+    if (lower.includes('figma.com')) return { name: 'Figma', color: '#a259ff', bg: '#f5f0ff' }
+    if (lower.includes('drive.google.com') || lower.includes('docs.google.com')) return { name: 'Google Drive', color: '#0f9d58', bg: '#e8f5e9' }
+    if (lower.includes('loom.com')) return { name: 'Loom Video', color: '#625df5', bg: '#eef2ff' }
+    if (lower.includes('notion.so') || lower.includes('notion.site')) return { name: 'Notion', color: '#111827', bg: '#f3f4f6' }
+    return { name: 'Project Link', color: '#0284c7', bg: '#f0f9ff' }
+  }
+
   return (
     <div className="student-home-tab">
       {/* =========================================================================
@@ -228,6 +239,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ studentData, user }) => {
 
           {mentorTasks.map((task) => {
             const deadlineStatus = getDeadlineStatus(task)
+            const platformBadge = getPlatformBadge(task.submission_link)
             const mentorInitials =
               task.mentor_name
                 .split(' ')
@@ -238,7 +250,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ studentData, user }) => {
                 .toUpperCase() || 'M'
 
             return (
-              <article key={task.id} className="student-task-card">
+              <article key={task.id} className={`student-task-card status-${task.status}`}>
                 {/* Top Row: Mentor Avatar & Status */}
                 <div className="student-task-top-row">
                   <div className="student-task-mentor-info">
@@ -247,24 +259,29 @@ export const HomeTab: React.FC<HomeTabProps> = ({ studentData, user }) => {
                     </div>
                     <div className="student-task-mentor-texts">
                       <h4 className="student-task-mentor-name">{task.mentor_name}</h4>
-                      <p className="student-task-assigned-by">Mentor Task</p>
+                      <p className="student-task-assigned-by">Assigned Mentor</p>
                     </div>
                   </div>
 
                   <div>
                     {task.status === 'assigned' && (
                       <span className="student-task-status-badge assigned">
-                        ⏱️ Action Required
+                        <span className="pill-pulse-dot warning"></span>
+                        Action Required
                       </span>
                     )}
                     {task.status === 'submitted' && (
                       <span className="student-task-status-badge submitted">
-                        ● Submitted (Awaiting Review)
+                        <span className="pill-pulse-dot success"></span>
+                        Awaiting Review
                       </span>
                     )}
                     {task.status === 'reviewed' && (
                       <span className="student-task-status-badge reviewed">
-                        ✓ Feedback Received
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Evaluated
                       </span>
                     )}
                   </div>
@@ -281,6 +298,12 @@ export const HomeTab: React.FC<HomeTabProps> = ({ studentData, user }) => {
                       deadlineStatus.isOverdue ? 'overdue' : ''
                     }`}
                   >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
                     {deadlineStatus.label}
                   </span>
                 </div>
@@ -288,7 +311,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({ studentData, user }) => {
                 {/* If submitted: display student submission summary */}
                 {task.status === 'submitted' && (
                   <div className="student-submission-summary">
-                    <span className="student-submission-summary-header">Your Submitted Work:</span>
+                    <div className="student-submission-summary-header">
+                      <span>Your Submitted Work</span>
+                      {platformBadge && (
+                        <span
+                          className="submission-platform-tag"
+                          style={{ color: platformBadge.color, background: platformBadge.bg }}
+                        >
+                          {platformBadge.name}
+                        </span>
+                      )}
+                    </div>
                     {task.submission_link && (
                       <a
                         href={task.submission_link}
@@ -296,12 +329,19 @@ export const HomeTab: React.FC<HomeTabProps> = ({ studentData, user }) => {
                         rel="noopener noreferrer"
                         className="student-submission-link-pill"
                       >
-                        <span>🔗 {task.submission_link}</span>
-                        <span>↗</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                        </svg>
+                        <span className="submission-link-text">{task.submission_link}</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <line x1="7" y1="17" x2="17" y2="7" />
+                          <polyline points="7 7 17 7 17 17" />
+                        </svg>
                       </a>
                     )}
                     {task.submission_notes && (
-                      <div style={{ fontSize: '12.5px', color: '#475569', fontStyle: 'italic' }}>
+                      <div className="student-submission-notes-quote">
                         "{task.submission_notes}"
                       </div>
                     )}
@@ -311,6 +351,10 @@ export const HomeTab: React.FC<HomeTabProps> = ({ studentData, user }) => {
                       className="student-task-edit-submission-btn"
                       onClick={() => setSelectedTaskForSubmit(task)}
                     >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
                       Update Submission
                     </button>
                   </div>
@@ -324,13 +368,28 @@ export const HomeTab: React.FC<HomeTabProps> = ({ studentData, user }) => {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
-                        Mentor Review & Feedback
+                        Mentor Evaluation & Feedback
                       </span>
 
                       {task.rating && (
-                        <span className="mentor-feedback-rating">
-                          {'★'.repeat(task.rating)} {task.rating}/5
-                        </span>
+                        <div className="mentor-feedback-rating-badge">
+                          <span className="feedback-stars">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <svg
+                                key={star}
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill={star <= (task.rating || 0) ? '#f59e0b' : '#e2e8f0'}
+                                stroke={star <= (task.rating || 0) ? '#f59e0b' : '#cbd5e1'}
+                                strokeWidth="1.5"
+                              >
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                              </svg>
+                            ))}
+                          </span>
+                          <span className="feedback-rating-score">{task.rating}/5</span>
+                        </div>
                       )}
                     </div>
 
@@ -340,8 +399,18 @@ export const HomeTab: React.FC<HomeTabProps> = ({ studentData, user }) => {
                       </p>
                     )}
 
-                    <div style={{ fontSize: '11px', color: '#166534', marginTop: 2 }}>
-                      Evaluated on {task.reviewed_at ? new Date(task.reviewed_at).toLocaleDateString() : ''}
+                    <div className="mentor-feedback-meta-row">
+                      <span>Evaluated on {task.reviewed_at ? new Date(task.reviewed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}</span>
+                      {task.submission_link && (
+                        <a
+                          href={task.submission_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="feedback-reviewed-link"
+                        >
+                          Reviewed Link ↗
+                        </a>
+                      )}
                     </div>
                   </div>
                 )}

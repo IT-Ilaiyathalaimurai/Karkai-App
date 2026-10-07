@@ -843,6 +843,31 @@
   flex-direction: column;
   gap: 12px;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  position: relative;
+  animation: cardFadeSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cardFadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.student-task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.student-task-card.status-assigned {
+  border-left: 4.5px solid #f59e0b;
+}
+
+.student-task-card.status-submitted {
+  border-left: 4.5px solid #16a34a;
+}
+
+.student-task-card.status-reviewed {
+  border-left: 4.5px solid #2563eb;
 }
 
 .student-task-top-row {
@@ -861,8 +886,8 @@
 }
 
 .student-task-mentor-avatar {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: linear-gradient(135deg, #0f1e36, #1e3a8a);
   color: #ffffff;
@@ -872,42 +897,47 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(15, 30, 54, 0.2);
 }
 
 .student-task-mentor-texts {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
 }
 
 .student-task-mentor-name {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 750;
   color: #0f172a;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .student-task-assigned-by {
   font-size: 11px;
   color: #64748b;
   margin: 0;
+  font-weight: 550;
 }
 
 /* Status Pill */
 .student-task-status-badge {
   font-size: 11px;
   font-weight: 750;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .student-task-status-badge.assigned {
   background: #fefce8;
-  color: #854d0e;
+  color: #92400e;
   border: 1px solid #fef08a;
 }
 
@@ -923,25 +953,60 @@
   border: 1px solid #bbf7d0;
 }
 
+/* Pulsing Dots */
+.pill-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.pill-pulse-dot.warning {
+  background: #d97706;
+  box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4);
+  animation: taskPillPulseWarn 2s infinite;
+}
+
+.pill-pulse-dot.success {
+  background: #16a34a;
+  box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4);
+  animation: taskPillPulseSuccess 2s infinite;
+}
+
+@keyframes taskPillPulseWarn {
+  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.5); }
+  70% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+}
+
+@keyframes taskPillPulseSuccess {
+  0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.5); }
+  70% { box-shadow: 0 0 0 5px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
 /* Task Body */
 .student-task-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .student-task-title {
   margin: 0;
-  font-size: 15px;
+  font-size: 15.5px;
   font-weight: 800;
   color: #0f172a;
+  line-height: 1.35;
 }
 
 .student-task-desc {
   margin: 0;
   font-size: 13px;
   color: #475569;
-  line-height: 1.45;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .student-task-deadline-pill {
@@ -966,46 +1031,88 @@
 
 /* Student submission display */
 .student-submission-summary {
-  background: #f8fafc;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .student-submission-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 11px;
-  font-weight: 750;
-  color: #64748b;
+  font-weight: 800;
+  color: #475569;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.submission-platform-tag {
+  font-size: 10.5px;
+  font-weight: 750;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: normal;
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .student-submission-link-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  justify-content: space-between;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
   color: #2563eb;
   font-size: 12.5px;
   font-weight: 650;
   text-decoration: none;
   word-break: break-all;
+  transition: all 0.15s ease;
 }
 
 .student-submission-link-pill:hover {
-  text-decoration: underline;
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.submission-link-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-submission-notes-quote {
+  font-size: 12.5px;
+  color: #475569;
+  font-style: italic;
+  background: #ffffff;
+  padding: 8px 10px;
+  border-left: 3px solid #94a3b8;
+  border-radius: 0 6px 6px 0;
+  line-height: 1.45;
 }
 
 /* Mentor feedback card on student side */
 .student-mentor-feedback-card {
-  background: #f0fdf4;
-  border: 1.5px solid #bbf7d0;
-  border-radius: 12px;
-  padding: 12px 14px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1.5px solid #86efac;
+  border-radius: 14px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.08);
 }
 
 .mentor-feedback-card-header {
@@ -1013,73 +1120,127 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .mentor-feedback-card-title {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 800;
   color: #15803d;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
-.mentor-feedback-rating {
-  font-size: 13px;
-  color: #f59e0b;
+.mentor-feedback-rating-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid #fde68a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.feedback-stars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.feedback-rating-score {
+  font-size: 12px;
   font-weight: 800;
+  color: #d97706;
 }
 
 .mentor-feedback-card-text {
   margin: 0;
-  font-size: 13px;
-  color: #166534;
-  line-height: 1.45;
+  font-size: 13.5px;
+  color: #14532d;
+  line-height: 1.5;
   font-style: italic;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 10px 12px;
+  border-radius: 8px;
+  border-left: 3.5px solid #22c55e;
   word-break: break-word;
+}
+
+.mentor-feedback-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: #166534;
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+
+.feedback-reviewed-link {
+  color: #15803d;
+  text-decoration: none;
+  font-weight: 750;
+  transition: text-decoration 0.15s ease;
+}
+
+.feedback-reviewed-link:hover {
+  text-decoration: underline;
 }
 
 /* Action button to submit work */
 .student-task-submit-btn {
-  background: #0284c7;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: #ffffff;
   border: none;
-  border-radius: 10px;
-  padding: 11px 16px;
-  font-size: 13px;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13.5px;
   font-weight: 750;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  box-shadow: 0 3px 10px rgba(2, 132, 199, 0.25);
-  transition: all 0.15s ease;
+  gap: 8px;
+  min-height: 48px;
+  box-shadow: 0 3px 12px rgba(2, 132, 199, 0.28);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
 }
 
 .student-task-submit-btn:hover {
-  background: #0369a1;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(2, 132, 199, 0.36);
+}
+
+.student-task-submit-btn:active {
+  transform: translateY(0);
 }
 
 .student-task-edit-submission-btn {
   background: #ffffff;
-  color: #475569;
+  color: #334155;
   border: 1.5px solid #cbd5e1;
   border-radius: 10px;
   padding: 8px 14px;
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  min-height: 40px;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   align-self: flex-start;
   transition: all 0.15s ease;
 }
 
 .student-task-edit-submission-btn:hover {
   background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
 }
 

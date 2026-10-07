@@ -12,6 +12,32 @@ export interface MentorReviewTaskModalProps {
   onReviewed?: (updatedTask: MentorAssignedTask) => void
 }
 
+const FEEDBACK_PRESETS = [
+  'Outstanding execution! Clean structure and well formatted.',
+  'Great effort! Attention to detail is evident, ready for the next level.',
+  'Good progress! Please review the notes and polish the edge cases.',
+  'Strong foundation. Recommend refining responsiveness on mobile.',
+]
+
+const RATING_DESCRIPTIONS: Record<number, string> = {
+  1: 'Needs Revision',
+  2: 'Developing - Work Needed',
+  3: 'Good Attempt',
+  4: 'Great Job - High Quality',
+  5: 'Outstanding / Exceptional!',
+}
+
+const getPlatformBadge = (url?: string | null) => {
+  if (!url) return null
+  const lower = url.toLowerCase()
+  if (lower.includes('github.com')) return { label: 'GitHub Repo', color: '#181717', bg: '#f6f8fa' }
+  if (lower.includes('figma.com')) return { label: 'Figma Design', color: '#a259ff', bg: '#f8f5ff' }
+  if (lower.includes('drive.google.com') || lower.includes('docs.google.com')) return { label: 'Google Drive', color: '#0f9d58', bg: '#f0fdf4' }
+  if (lower.includes('loom.com')) return { label: 'Loom Video', color: '#625df5', bg: '#f5f3ff' }
+  if (lower.includes('notion.site') || lower.includes('notion.so')) return { label: 'Notion Doc', color: '#000000', bg: '#f7f6f3' }
+  return { label: 'Review Link', color: '#2563eb', bg: '#eff6ff' }
+}
+
 export const MentorReviewTaskModal: React.FC<MentorReviewTaskModalProps> = ({
   isOpen,
   onClose,
@@ -20,6 +46,7 @@ export const MentorReviewTaskModal: React.FC<MentorReviewTaskModalProps> = ({
 }) => {
   const [feedback, setFeedback] = useState<string>('')
   const [rating, setRating] = useState<number>(5)
+  const [hoverRating, setHoverRating] = useState<number>(0)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [errorMsg, setErrorMsg] = useState<string>('')
 
@@ -27,12 +54,16 @@ export const MentorReviewTaskModal: React.FC<MentorReviewTaskModalProps> = ({
     if (task) {
       setFeedback(task.feedback || '')
       setRating(task.rating || 5)
+      setHoverRating(0)
       setErrorMsg('')
       setIsSubmitting(false)
     }
   }, [task, isOpen])
 
   if (!isOpen || !task) return null
+
+  const platformInfo = getPlatformBadge(task.submission_link)
+  const effectiveRating = hoverRating || rating
 
   // Check if submitted on time
   const isSubmittedOnTime =
@@ -151,7 +182,23 @@ export const MentorReviewTaskModal: React.FC<MentorReviewTaskModalProps> = ({
             {task.submission_link ? (
               <div className="rtm-link-panel">
                 <div className="rtm-link-meta">
-                  <span className="rtm-link-label">Student Attached Link</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="rtm-link-label">Student Attached Link</span>
+                    {platformInfo && (
+                      <span
+                        style={{
+                          fontSize: '10.5px',
+                          fontWeight: 750,
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          background: platformInfo.bg,
+                          color: platformInfo.color,
+                        }}
+                      >
+                        {platformInfo.label}
+                      </span>
+                    )}
+                  </div>
                   <span className="rtm-link-url-text" title={task.submission_link}>
                     {task.submission_link}
                   </span>
@@ -188,22 +235,30 @@ export const MentorReviewTaskModal: React.FC<MentorReviewTaskModalProps> = ({
 
           {/* Rating */}
           <div className="rtm-field">
-            <label className="rtm-label">
-              Rating & Performance
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label className="rtm-label">
+                Rating & Performance
+              </label>
+              <span className="rtm-rating-desc-badge">
+                {RATING_DESCRIPTIONS[effectiveRating] || ''}
+              </span>
+            </div>
+
             <div className="rtm-rating-wrap">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
                   type="button"
-                  className={`rtm-star-btn ${star <= rating ? 'active' : ''}`}
+                  className={`rtm-star-btn ${star <= effectiveRating ? 'active' : ''}`}
                   onClick={() => setRating(star)}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
                   title={`${star} Star${star > 1 ? 's' : ''}`}
                 >
                   ★
                 </button>
               ))}
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#f59e0b', marginLeft: 6 }}>
+              <span className="rtm-rating-numeric-text">
                 {rating} / 5 Stars
               </span>
             </div>
@@ -211,9 +266,28 @@ export const MentorReviewTaskModal: React.FC<MentorReviewTaskModalProps> = ({
 
           {/* Mentor Feedback Textarea */}
           <div className="rtm-field">
-            <label className="rtm-label" htmlFor="rtm-feedback-input">
-              Mentor Review Feedback <span className="req">*</span>
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label className="rtm-label" htmlFor="rtm-feedback-input">
+                Mentor Review Feedback <span className="req">*</span>
+              </label>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>Quick suggestions below:</span>
+            </div>
+
+            {/* Feedback Presets */}
+            <div className="rtm-presets-scroll">
+              {FEEDBACK_PRESETS.map((preset, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className="rtm-preset-btn"
+                  onClick={() => setFeedback(preset)}
+                  disabled={isSubmitting}
+                >
+                  <span>"{preset.substring(0, 32)}..."</span>
+                </button>
+              ))}
+            </div>
+
             <textarea
               id="rtm-feedback-input"
               className="rtm-textarea"

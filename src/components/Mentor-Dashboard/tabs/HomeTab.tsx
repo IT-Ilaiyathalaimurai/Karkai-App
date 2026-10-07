@@ -344,7 +344,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   .toUpperCase() || 'S'
 
               return (
-                <article key={task.id} className="mentor-task-card">
+                <article key={task.id} className={`mentor-task-card status-${task.status}`}>
                   {/* Card Top: Student Avatar + Status */}
                   <div className="mentor-task-card-top">
                     <div className="mentor-task-student-meta">
@@ -363,17 +363,25 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                     <div>
                       {task.status === 'submitted' && (
                         <span className="mentor-task-status-pill needs_review">
-                          ● Work Submitted
+                          <span className="pill-pulse-dot" />
+                          <span>Review Ready</span>
                         </span>
                       )}
                       {task.status === 'assigned' && (
                         <span className="mentor-task-status-pill in_progress">
-                          ⏱️ In Progress
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                          </svg>
+                          <span>In Progress</span>
                         </span>
                       )}
                       {task.status === 'reviewed' && (
                         <span className="mentor-task-status-pill reviewed">
-                          ✓ Reviewed
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          <span>Reviewed</span>
                         </span>
                       )}
                     </div>
@@ -486,8 +494,12 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
                   {/* If still waiting for student */}
                   {task.status === 'assigned' && (
-                    <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic', paddingTop: 2 }}>
-                      ⏳ Student has not submitted their work yet.
+                    <div className="mentor-task-awaiting-bar">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      <span>Awaiting student submission & reviewable link</span>
                     </div>
                   )}
                 </article>

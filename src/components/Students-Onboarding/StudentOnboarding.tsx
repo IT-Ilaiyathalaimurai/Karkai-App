@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import './StudentOnboarding.css'
 import { extractDobFromIdCard } from '../../lib/ocr'
 import { saveStudentDetails } from '../../lib/Students-details'
+import { sendWelcomeEmail } from '../../lib/send-welcome-email'
 import {
   getStudentDraft,
   saveStudentDraft,
@@ -1257,6 +1258,16 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
         if (saveRes.data.resume_url) {
           finalData.resumeUrl = saveRes.data.resume_url
         }
+      }
+
+      // Send welcome onboarding email via Gmail SMTP
+      const targetEmail = initialEmail || (saveRes?.data && saveRes.data.email)
+      if (targetEmail) {
+        sendWelcomeEmail({
+          email: targetEmail,
+          name: finalData.fullName,
+          role: 'student',
+        }).catch((e) => console.warn('Welcome email trigger notice:', e))
       }
     } catch (err) {
       console.warn('Backend sync notice (Student details):', err)

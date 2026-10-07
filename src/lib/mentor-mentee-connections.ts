@@ -12,6 +12,7 @@ export interface MentorMenteeConnection {
   id: string
   user_id?: string | null
   mentor_user_id?: string | null
+  mentor_id?: string | null
   mentor_name: string
   student_name: string
   status: ConnectionStatus
@@ -62,14 +63,26 @@ export async function sendMentorshipRequest(
   const mentorName = mentor.fullName
   const studentName = studentData?.fullName || studentUser?.name || 'Student Learner'
   const now = new Date().toISOString()
+  const targetMentorId = mentor.id
+  const targetMentorUserId = mentor.userId
 
-  // 1. Check local cache — if exists, reset to pending
+  // 1. Check local cache — match by unique mentor id/userId FIRST to avoid collisions between same-named mentors
   const cachedList = getCachedConnections()
-  const existingIdx = cachedList.findIndex(
-    (c) =>
-      c.mentor_name?.toLowerCase() === mentorName.toLowerCase() &&
-      c.student_name?.toLowerCase() === studentName.toLowerCase()
-  )
+  const existingIdx = cachedList.findIndex((c) => {
+    const studentMatch = c.student_name?.toLowerCase() === studentName.toLowerCase()
+    if (!studentMatch) return false
+
+    // Unique match by ID
+    if (targetMentorUserId && c.mentor_user_id && c.mentor_user_id === targetMentorUserId) return true
+    if (targetMentorId && c.mentor_id && c.mentor_id === targetMentorId) return true
+    if (targetMentorId && c.mentor_user_id && c.mentor_user_id === targetMentorId) return true
+
+    // Fallback to name ONLY if neither record has an ID
+    if (!targetMentorUserId && !targetMentorId && !c.mentor_user_id && !c.mentor_id) {
+      return c.mentor_name?.toLowerCase() === mentorName.toLowerCase()
+    }
+    return false
+  })
 
   const connectionId =
     existingIdx >= 0
@@ -86,12 +99,13 @@ export async function sendMentorshipRequest(
       // ignore session read errors
     }
   }
-  const mentorUserId = mentor.userId
+  const mentorUserId = targetMentorUserId || targetMentorId
 
   const connectionRecord: MentorMenteeConnection = {
     id: connectionId,
     user_id: studentUserId || null,
     mentor_user_id: mentorUserId || null,
+    mentor_id: targetMentorId || null,
     mentor_name: mentorName,
     student_name: studentName,
     status: 'pending',
@@ -110,12 +124,18 @@ export async function sendMentorshipRequest(
   // 2. Persist to Supabase
   if (supabase && isSupabaseConfigured) {
     try {
-      const { data: existing } = await supabase
+      let existingQuery = supabase
         .from(CONNECTIONS_TABLE_NAME)
         .select('id')
-        .eq('mentor_name', mentorName)
         .eq('student_name', studentName)
-        .maybeSingle()
+
+      if (mentorUserId) {
+        existingQuery = existingQuery.eq('mentor_user_id', mentorUserId)
+      } else {
+        existingQuery = existingQuery.eq('mentor_name', mentorName)
+      }
+
+      const { data: existing } = await existingQuery.maybeSingle()
 
       const payloadWithUserIds: Record<string, any> = {
         mentor_name: mentorName,
@@ -220,17 +240,24 @@ export async function getMentorRequests(mentorIdentifier: {
   fullName?: string
 }): Promise<MentorMenteeConnection[]> {
   const mentorName = mentorIdentifier.fullName?.trim()
+  const mentorUserId = mentorIdentifier.userId || mentorIdentifier.id
 
-  if (!mentorName) return []
+  if (!mentorName && !mentorUserId) return []
 
   // 1. Try Supabase
   if (supabase && isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
-        .from(CONNECTIONS_TABLE_NAME)
-        .select('*')
-        .ilike('mentor_name', mentorName)
-        .order('created_at', { ascending: false })
+      let query = supabase.from(CONNECTIONS_TABLE_NAME).select('*')
+
+      if (mentorUserId) {
+        query = query.or(
+          `mentor_user_id.eq.${mentorUserId},and(mentor_user_id.is.null,mentor_name.ilike.${mentorName || ''})`
+        )
+      } else if (mentorName) {
+        query = query.ilike('mentor_name', mentorName)
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false })
 
       if (!error && Array.isArray(data)) {
         return data as MentorMenteeConnection[]
@@ -243,9 +270,15 @@ export async function getMentorRequests(mentorIdentifier: {
   }
 
   // 2. Cache fallback
-  return getCachedConnections().filter(
-    (c) => c.mentor_name?.trim().toLowerCase() === mentorName.toLowerCase()
-  )
+  return getCachedConnections().filter((c) => {
+    if (mentorUserId && c.mentor_user_id) {
+      return c.mentor_user_id === mentorUserId || (c as any).mentor_id === mentorUserId
+    }
+    if (mentorName) {
+      return c.mentor_name?.trim().toLowerCase() === mentorName.toLowerCase()
+    }
+    return false
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -337,7 +370,7 @@ export async function withdrawMentorshipRequest(
   const cachedList = getCachedConnections()
   const updatedCache = cachedList.filter((c) => {
     if (connectionId && c.id === connectionId) return false
-    if (mentorName && studentName) {
+    if (!connectionId && mentorName && studentName) {
       const mentorMatches = c.mentor_name?.trim().toLowerCase() === mentorName.trim().toLowerCase()
       const studentMatches = c.student_name?.trim().toLowerCase() === studentName.trim().toLowerCase()
       if (mentorMatches && studentMatches) return false
@@ -365,8 +398,8 @@ export async function withdrawMentorshipRequest(
         }
       }
 
-      // Try deletion by mentor_name and student_name
-      if (!deleted && mentorName && studentName) {
+      // Try deletion by mentor_name and student_name only if connectionId wasn't provided
+      if (!deleted && !connectionId && mentorName && studentName) {
         const { error: nameErr } = await supabase
           .from(CONNECTIONS_TABLE_NAME)
           .delete()
@@ -379,7 +412,6 @@ export async function withdrawMentorshipRequest(
           console.warn('[Connections] Primary delete by names notice:', nameErr.message)
         }
       }
-
       // 3. Fallback: try anonSupabase if RLS blocked the main client
       if (!deleted && anonSupabase) {
         if (connectionId && !connectionId.startsWith('conn-')) {
@@ -387,13 +419,6 @@ export async function withdrawMentorshipRequest(
             .from(CONNECTIONS_TABLE_NAME)
             .delete()
             .eq('id', connectionId)
-        }
-        if (mentorName && studentName) {
-          await anonSupabase
-            .from(CONNECTIONS_TABLE_NAME)
-            .delete()
-            .ilike('mentor_name', mentorName.trim())
-            .ilike('student_name', studentName.trim())
         }
       }
     } catch (err) {

@@ -68,11 +68,14 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
       const res = await sendMentorshipRequest(mentor, studentData || null, user || null)
       if (res.connection) {
         setStudentRequests((prev) => {
-          const filtered = prev.filter(
-            (c) =>
-              c.id !== res.connection!.id &&
-              c.mentor_name?.trim().toLowerCase() !== mentor.fullName?.trim().toLowerCase()
-          )
+          const mentorId = mentor.id || mentor.userId
+          const filtered = prev.filter((c) => {
+            if (c.id === res.connection!.id) return false
+            if (mentorId && (c.mentor_user_id === mentorId || c.mentor_id === mentorId)) {
+              return false
+            }
+            return true
+          })
           return [res.connection!, ...filtered]
         })
       }
@@ -89,27 +92,15 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
     const targetMentorName = targetConn.mentor_name
 
     try {
-      const res = await withdrawMentorshipRequest(
+      await withdrawMentorshipRequest(
         targetConn.id,
         targetConn.mentor_name,
         targetConn.student_name
       )
 
-      if (res.success) {
-        setStudentRequests((prev) =>
-          prev.filter(
-            (c) =>
-              c.id !== targetConn.id &&
-              c.mentor_name?.trim().toLowerCase() !== targetMentorName.trim().toLowerCase()
-          )
-        )
-        setToastNotice(`Mentorship request to ${targetMentorName} was withdrawn. You can now choose another mentor.`)
-        setTimeout(() => setToastNotice(null), 5000)
-      } else {
-        setStudentRequests((prev) => prev.filter((c) => c.id !== targetConn.id))
-        setToastNotice(`Mentorship request to ${targetMentorName} was withdrawn.`)
-        setTimeout(() => setToastNotice(null), 5000)
-      }
+      setStudentRequests((prev) => prev.filter((c) => c.id !== targetConn.id))
+      setToastNotice(`Mentorship request to ${targetMentorName} was withdrawn. You can now choose another mentor.`)
+      setTimeout(() => setToastNotice(null), 5000)
     } catch (err) {
       console.error('Error withdrawing request:', err)
     } finally {
@@ -118,11 +109,35 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
     }
   }
 
-  // Find connection record for a mentor (match by name only)
+  // Find connection record for a mentor (prioritize unique mentor ID, never match name alone if duplicate names exist)
   const findConnection = (mentor: MentorProfileData): MentorMenteeConnection | undefined => {
-    return studentRequests.find(
-      (c) => c.mentor_name?.toLowerCase() === mentor.fullName?.toLowerCase()
+    const mentorId = mentor.id
+    const mentorUserId = mentor.userId
+
+    // 1. Exact match by mentor_user_id or mentor_id
+    if (mentorId || mentorUserId) {
+      const matchById = studentRequests.find((c) => {
+        if (mentorUserId && c.mentor_user_id && c.mentor_user_id === mentorUserId) return true
+        if (mentorId && c.mentor_id && c.mentor_id === mentorId) return true
+        if (mentorId && c.mentor_user_id && c.mentor_user_id === mentorId) return true
+        return false
+      })
+      if (matchById) return matchById
+    }
+
+    // 2. Only match by name if there is EXACTLY ONE mentor with this name in the list.
+    // If two mentors share the same name (e.g. both named "Harigowtham"), do NOT match by name alone!
+    const sameNameMentors = mentors.filter(
+      (m) => m.fullName?.trim().toLowerCase() === mentor.fullName?.trim().toLowerCase()
     )
+
+    if (sameNameMentors.length <= 1) {
+      return studentRequests.find(
+        (c) => c.mentor_name?.trim().toLowerCase() === mentor.fullName?.trim().toLowerCase()
+      )
+    }
+
+    return undefined
   }
 
   // Derived: accepted connections (My Mentors tab)
@@ -243,9 +258,11 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
         /* ---- MY MENTORS: Accepted connections ---- */
         <section className="my-mentors-list" id="my-mentors-section">
           {acceptedConnections.map((conn) => {
-            const mentor = mentors.find(
-              (m) => m.fullName?.toLowerCase() === conn.mentor_name?.toLowerCase()
-            )
+            const mentor = mentors.find((m) => {
+              if (conn.mentor_user_id && (m.userId === conn.mentor_user_id || m.id === conn.mentor_user_id)) return true
+              if (conn.mentor_id && m.id === conn.mentor_id) return true
+              return m.fullName?.toLowerCase() === conn.mentor_name?.toLowerCase()
+            })
             const initials = conn.mentor_name
               .split(' ')
               .filter(Boolean)
@@ -336,6 +353,7 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
                 .toUpperCase() || 'M'
 
             const mentorKey = mentor.id || mentor.userId || mentor.fullName
+            const safeKey = String(mentorKey).replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase()
             const connection = findConnection(mentor)
             const isPending = connection?.status === 'pending'
             const isAccepted = connection?.status === 'accepted'
@@ -457,7 +475,7 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
                       type="button"
                       className="mentor-view-profile-btn"
                       onClick={() => setSelectedMentor(mentor)}
-                      id={`mentor-view-profile-${mentor.fullName.replace(/\s+/g, '-').toLowerCase()}`}
+                      id={`mentor-view-profile-${safeKey}`}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -489,7 +507,7 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
                         type="button"
                         className="mentor-request-btn re-request"
                         onClick={() => handleRequestMentor(mentor)}
-                        id={`mentor-request-btn-${mentor.fullName.replace(/\s+/g, '-').toLowerCase()}`}
+                        id={`mentor-request-btn-${safeKey}`}
                         title="Send request again to this mentor"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -504,7 +522,7 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
                           type="button"
                           className="mentor-request-btn requested"
                           disabled
-                          id={`mentor-request-btn-${mentor.fullName.replace(/\s+/g, '-').toLowerCase()}`}
+                          id={`mentor-request-btn-${safeKey}`}
                           title="Mentorship request sent, waiting for mentor response"
                         >
                           <span className="mentor-pending-pulse-dot" />
@@ -514,7 +532,7 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
                           type="button"
                           className="mentor-withdraw-btn"
                           onClick={() => connection && setWithdrawingConnection(connection)}
-                          id={`mentor-withdraw-btn-${mentor.fullName.replace(/\s+/g, '-').toLowerCase()}`}
+                          id={`mentor-withdraw-btn-${safeKey}`}
                           title="Withdraw request to select another mentor"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
@@ -529,7 +547,7 @@ export const MentorsTab: React.FC<MentorsTabProps> = ({ studentData, user, onOpe
                         type="button"
                         className="mentor-request-btn"
                         onClick={() => handleRequestMentor(mentor)}
-                        id={`mentor-request-btn-${mentor.fullName.replace(/\s+/g, '-').toLowerCase()}`}
+                        id={`mentor-request-btn-${safeKey}`}
                         title="Send mentorship request"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">

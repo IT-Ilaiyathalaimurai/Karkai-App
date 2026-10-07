@@ -4655,25 +4655,25 @@
     max-height: 90vh;
     animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
+}
 
-  @media (max-width: 440px) {
-    .withdraw-modal-actions {
-      flex-direction: column-reverse;
-      gap: 8px;
-    }
-    .withdraw-modal-cancel-btn,
-    .withdraw-modal-confirm-btn {
-      width: 100%;
-      min-height: 44px;
-      justify-content: center;
-    }
-    .mentor-pending-actions-wrap {
-      flex-wrap: wrap;
-    }
-    .mentor-withdraw-btn {
-      width: 100%;
-      justify-content: center;
-    }
+@media (max-width: 440px) {
+  .withdraw-modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .withdraw-modal-cancel-btn,
+  .withdraw-modal-confirm-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .mentor-pending-actions-wrap {
+    flex-wrap: wrap;
+  }
+  .mentor-withdraw-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 

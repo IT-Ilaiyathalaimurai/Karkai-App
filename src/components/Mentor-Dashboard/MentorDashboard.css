@@ -2986,6 +2986,7 @@
   }
 
   /* Modals to native bottom sheets */
+  .profile-modal-backdrop,
   .mentor-profile-modal-backdrop,
   .mentor-reject-modal-backdrop,
   .mentor-detail-modal-backdrop {
@@ -2993,6 +2994,7 @@
     padding: 0 !important;
   }
 
+  .profile-modal-container,
   .mentor-profile-modal-card,
   .mentor-reject-modal-card,
   .mentor-detail-modal-card {
@@ -3015,34 +3017,34 @@
     justify-content: center;
     touch-action: manipulation;
   }
+}
 
-  /* Small phone adjustments for requests */
-  @media (max-width: 480px) {
-    .request-card-top {
-      flex-wrap: wrap;
-    }
-    .request-card-badge-col {
-      width: 100%;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 6px;
-      border-top: 1px dashed #e2e8f0;
-    }
-    .request-actions-row {
-      flex-direction: column;
-      gap: 8px;
-    }
-    .request-actions-row > button {
-      width: 100% !important;
-      min-width: 0 !important;
-    }
+/* Small phone adjustments for requests */
+@media (max-width: 480px) {
+  .request-card-top {
+    flex-wrap: wrap;
   }
+  .request-card-badge-col {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 6px;
+    border-top: 1px dashed #e2e8f0;
+  }
+  .request-actions-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .request-actions-row > button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
 
-  @media (max-width: 360px) {
-    .mentor-bottom-tab-label {
-      font-size: 10px;
-    }
+@media (max-width: 360px) {
+  .mentor-bottom-tab-label {
+    font-size: 10px;
   }
 }
 

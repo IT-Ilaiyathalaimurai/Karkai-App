@@ -3,13 +3,13 @@ import { createClient, type Session, type User } from '@supabase/supabase-js'
 export const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
   import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
-  ''
+  'https://yjdicbcjbtebcwzxjnah.supabase.co'
 
 export const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  ''
+  'sb_publishable_lUL_rgSdBJ8DUPssxFCFhw_C-nXuJG6'
 
 // Check whether real credentials have been supplied
 export const isSupabaseConfigured = Boolean(

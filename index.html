@@ -2,9 +2,31 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo2.png?v=karkai_20261008" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=karkai_20261008" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=karkai_20261008" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png?v=karkai_20261008" />
+    <link rel="shortcut icon" type="image/png" href="/logo2.png?v=karkai_20261008" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=karkai_20261008" />
+    <script>
+      (function() {
+        try {
+          var bust = '?v=' + Date.now();
+          var links = document.querySelectorAll("link[rel*='icon']");
+          links.forEach(function(el) { el.remove(); });
+          var icon = document.createElement('link');
+          icon.rel = 'icon';
+          icon.type = 'image/png';
+          icon.href = '/logo2.png' + bust;
+          document.head.appendChild(icon);
+          var shortcut = document.createElement('link');
+          shortcut.rel = 'shortcut icon';
+          shortcut.type = 'image/png';
+          shortcut.href = '/logo2.png' + bust;
+          document.head.appendChild(shortcut);
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -452,6 +452,12 @@
   margin-left: 2px;
 }
 
+.optional-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .field-hint {
   font-size: 12px;
   color: #64748b;
@@ -480,6 +486,17 @@
   letter-spacing: 0.04em;
   background: #fef3c7;
   color: #92400e;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.optional-badge {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #f1f5f9;
+  color: #64748b;
   padding: 3px 8px;
   border-radius: 999px;
 }

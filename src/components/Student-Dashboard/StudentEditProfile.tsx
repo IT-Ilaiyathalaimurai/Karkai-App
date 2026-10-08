@@ -4,6 +4,9 @@ import type { UserProfile } from '../SignIn-Screen'
 import { updateStudentProfile } from '../../lib/Students-details'
 import './StudentEditProfile.css'
 
+const MAX_RESUME_SIZE_BYTES = 100 * 1024
+const MAX_RESUME_SIZE_LABEL = '100KB'
+
 export interface StudentEditProfileProps {
   studentData: StudentProfileData | null
   user: UserProfile | null
@@ -101,9 +104,25 @@ export const StudentEditProfile: React.FC<StudentEditProfileProps> = ({
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Limit check (100KB for student resume)
-    if (file.size > 100 * 1024) {
-      setErrorMessage(`Resume exceeds 100KB size limit (${(file.size / 1024).toFixed(1)}KB). Please choose a smaller file.`)
+    const fileName = file.name.toLowerCase()
+    const validExtensions = ['.pdf', '.doc', '.docx']
+    const hasValidExtension = validExtensions.some((extension) => fileName.endsWith(extension))
+    const validMimeTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ]
+    const hasValidMimeType = validMimeTypes.includes(file.type)
+
+    if (!hasValidExtension && !hasValidMimeType && file.type !== '') {
+      setErrorMessage('Resume must be a PDF or Word document.')
+      e.target.value = ''
+      return
+    }
+
+    if (file.size > MAX_RESUME_SIZE_BYTES) {
+      setErrorMessage(`Your file is too large (${Math.round(file.size / 1024)}KB). Please choose a file <= ${MAX_RESUME_SIZE_LABEL}.`)
+      e.target.value = ''
       return
     }
 
@@ -800,11 +819,11 @@ export const StudentEditProfile: React.FC<StudentEditProfileProps> = ({
             <div className="student-edit-grid">
               {/* Resume Upload / Overwrite */}
               <div className="student-edit-field">
-                <label>Resume / Curriculum Vitae (Max 100KB)</label>
+                <label>Resume / Curriculum Vitae (Max {MAX_RESUME_SIZE_LABEL})</label>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.doc,.docx,application/pdf"
+                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   style={{ display: 'none' }}
                   onChange={handleResumeFileChange}
                 />
@@ -850,7 +869,7 @@ export const StudentEditProfile: React.FC<StudentEditProfileProps> = ({
                     <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
                       Click to upload your resume
                     </span>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>PDF or Word file (Max 100KB)</span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>PDF or Word file (Max {MAX_RESUME_SIZE_LABEL})</span>
                   </div>
                 )}
               </div>

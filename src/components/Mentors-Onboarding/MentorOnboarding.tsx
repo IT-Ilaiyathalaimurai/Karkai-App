@@ -53,117 +53,17 @@ export const POPULAR_SOFT_SKILLS = [
   'Networking & Professional Growth',
 ]
 
+const MAX_DOCUMENT_SIZE_BYTES = 100 * 1024
+const MAX_DOCUMENT_SIZE_LABEL = '100KB'
 /**
- * Downscale and compress mobile camera photos and uploaded images so they strictly
- * stay under 100KB while preserving high readability for mentor verification.
+ * Read a selected document as a data URL for local preview and upload.
  */
-function compressImageUnder100Kb(
-  file: File,
-  targetMaxBytes = 100 * 1024
-): Promise<{ dataUrl: string; name: string; sizeBytes: number; sizeFormatted: string }> {
+function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve) => {
-    // If the file is already under 100KB, read directly
-    if (file.size <= targetMaxBytes) {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const dataUrl = reader.result as string
-        const sizeKb = (file.size / 1024).toFixed(1)
-        resolve({ dataUrl, name: file.name, sizeBytes: file.size, sizeFormatted: `${sizeKb} KB` })
-      }
-      reader.onerror = () => resolve({ dataUrl: '', name: file.name, sizeBytes: 0, sizeFormatted: '' })
-      reader.readAsDataURL(file)
-      return
-    }
-
-    // Use URL.createObjectURL for memory-safe image decoding on mobile
-    const objectUrl = URL.createObjectURL(file)
-    const img = new Image()
-
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl)
-      try {
-        const passes = [
-          { maxDim: 900, quality: 0.65 },
-          { maxDim: 800, quality: 0.50 },
-          { maxDim: 650, quality: 0.40 },
-          { maxDim: 500, quality: 0.30 },
-        ]
-
-        let selectedDataUrl = ''
-        let selectedBytes = 0
-
-        for (const pass of passes) {
-          let width = img.width
-          let height = img.height
-
-          if (width > pass.maxDim || height > pass.maxDim) {
-            if (width > height) {
-              height = Math.round((height * pass.maxDim) / width)
-              width = pass.maxDim
-            } else {
-              width = Math.round((width * pass.maxDim) / height)
-              height = pass.maxDim
-            }
-          }
-
-          const canvas = document.createElement('canvas')
-          canvas.width = width
-          canvas.height = height
-          const ctx = canvas.getContext('2d')
-          if (!ctx) continue
-
-          // White background to avoid dark artifacts on transparent PNG/WebP
-          ctx.fillStyle = '#FFFFFF'
-          ctx.fillRect(0, 0, width, height)
-          ctx.drawImage(img, 0, 0, width, height)
-
-          const testUrl = canvas.toDataURL('image/jpeg', pass.quality)
-          const base64Index = testUrl.indexOf(';base64,')
-          const base64Len = base64Index !== -1 ? testUrl.length - (base64Index + 8) : testUrl.length
-          const approxBytes = Math.round((base64Len * 3) / 4)
-
-          if (approxBytes <= targetMaxBytes) {
-            selectedDataUrl = testUrl
-            selectedBytes = approxBytes
-            break
-          }
-        }
-
-        if (selectedDataUrl && selectedBytes <= targetMaxBytes) {
-          const sizeKb = (selectedBytes / 1024).toFixed(1)
-          const safeName = file.name.replace(/\.[^/.]+$/, '.jpg')
-          resolve({
-            dataUrl: selectedDataUrl,
-            name: safeName,
-            sizeBytes: selectedBytes,
-            sizeFormatted: `${sizeKb} KB`,
-          })
-        } else {
-          resolve({ dataUrl: '', name: file.name, sizeBytes: 0, sizeFormatted: '' })
-        }
-      } catch {
-        resolve({ dataUrl: '', name: file.name, sizeBytes: 0, sizeFormatted: '' })
-      }
-    }
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl)
-      // Fallback: If image cannot be decoded via Image element, check if under 100KB
-      if (file.size <= targetMaxBytes) {
-        const reader = new FileReader()
-        reader.onload = () => {
-          const dataUrl = reader.result as string
-          const sizeKb = (file.size / 1024).toFixed(1)
-          resolve({ dataUrl, name: file.name, sizeBytes: file.size, sizeFormatted: `${sizeKb} KB` })
-        }
-        reader.onerror = () => resolve({ dataUrl: '', name: file.name, sizeBytes: 0, sizeFormatted: '' })
-        reader.readAsDataURL(file)
-      } else {
-        resolve({ dataUrl: '', name: file.name, sizeBytes: 0, sizeFormatted: '' })
-      }
-    }
-
-    img.src = objectUrl
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+    reader.onerror = () => resolve('')
+    reader.readAsDataURL(file)
   })
 }
 
@@ -481,18 +381,17 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
 
     const isPdf = file.type === 'application/pdf' || fileName.endsWith('.pdf')
 
-    // If PDF, check size strictly against 100KB (PDFs cannot be compressed via browser canvas)
-    if (isPdf) {
-      const MAX_PDF_SIZE = 100 * 1024
-      if (file.size > MAX_PDF_SIZE) {
-        const sizeKb = Math.round(file.size / 1024)
-        setFieldErrors((prev) => ({
-          ...prev,
-          idCard: `Your file size is too long (${sizeKb}KB). Please upload a file <= 100KB.`,
-        }))
-        return
-      }
+    if (file.size > MAX_DOCUMENT_SIZE_BYTES && isPdf) {
+      const sizeKb = Math.round(file.size / 1024)
+      setFieldErrors((prev) => ({
+        ...prev,
+        idCard: `Your file is too large (${sizeKb}KB). Please choose a file <= ${MAX_DOCUMENT_SIZE_LABEL}.`,
+      }))
+      return
+    }
 
+    // PDFs cannot be compressed via browser canvas, so keep the original file.
+    if (isPdf) {
       const reader = new FileReader()
       reader.onload = () => {
         setIdCardFileName(file.name)
@@ -511,51 +410,27 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
       return
     }
 
-    // For image files: allow camera photos, auto-compress under 100KB
-    try {
-      if (typeof window !== 'undefined') {
-        const result = await compressImageUnder100Kb(file, 100 * 1024)
-        if (result.dataUrl && result.sizeBytes <= 100 * 1024) {
-          setIdCardFileName(result.name)
-          setIdCardPhotoUrl(result.dataUrl)
-          setIdCardFileSize(result.sizeFormatted)
-          clearFieldError('idCard')
-          return
-        }
-      }
-
-      // If compression could not bring the image under 100KB or file size is > 100KB
-      if (file.size > 100 * 1024) {
-        const sizeKb = Math.round(file.size / 1024)
-        setFieldErrors((prev) => ({
-          ...prev,
-          idCard: `Your file size is too long (${sizeKb}KB). Please upload a file <= 100KB.`,
-        }))
-        return
-      }
-
-      // Fallback direct FileReader for small images <= 100KB
-      const reader = new FileReader()
-      reader.onload = () => {
-        setIdCardFileName(file.name)
-        setIdCardPhotoUrl(reader.result as string)
-        const sizeKb = (file.size / 1024).toFixed(1)
-        setIdCardFileSize(`${sizeKb} KB`)
-        clearFieldError('idCard')
-      }
-      reader.onerror = () => {
-        setFieldErrors((prev) => ({
-          ...prev,
-          idCard: 'ID Card: Could not read file. Please choose another photo or file from storage.',
-        }))
-      }
-      reader.readAsDataURL(file)
-    } catch {
+    if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
+      const sizeKb = Math.round(file.size / 1024)
       setFieldErrors((prev) => ({
         ...prev,
-        idCard: 'Your file size is too long. Please upload a file <= 100KB.',
+        idCard: `Your file is too large (${sizeKb}KB). Please choose a file <= ${MAX_DOCUMENT_SIZE_LABEL}.`,
       }))
+      return
     }
+
+    const dataUrl = await readFileAsDataUrl(file)
+    if (!dataUrl) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        idCard: 'ID Card: Could not read file. Please choose another photo or file from storage.',
+      }))
+      return
+    }
+    setIdCardFileName(file.name)
+    setIdCardPhotoUrl(dataUrl)
+    setIdCardFileSize(`${(file.size / 1024).toFixed(1)} KB`)
+    clearFieldError('idCard')
   }
 
   const handleResumeFileSelect = (file: File) => {
@@ -574,12 +449,11 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
       return
     }
 
-    const MAX_RESUME_SIZE = 100 * 1024 // 100 KB
-    if (file.size > MAX_RESUME_SIZE) {
+    if (file.size > MAX_DOCUMENT_SIZE_BYTES) {
       const kb = Math.round(file.size / 1024)
       setFieldErrors((prev) => ({
         ...prev,
-        resume: `Your file size is too long (${kb}KB). Please upload a file <= 100KB.`,
+        resume: `Your file is too large (${kb}KB). Please choose a file <= ${MAX_DOCUMENT_SIZE_LABEL}.`,
       }))
       return
     }
@@ -624,16 +498,6 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
       errors.linkedinUrl = 'LinkedIn URL: Profile URL is mandatory for mentor verification.'
     } else if (!cleanLinkedin.toLowerCase().includes('linkedin.com')) {
       errors.linkedinUrl = 'LinkedIn URL: Please enter a valid profile link containing linkedin.com.'
-    }
-
-    // Validate ID Card
-    if (!idCardPhotoUrl) {
-      errors.idCard = 'ID Card: Official work identification document is mandatory for mentor verification.'
-    }
-
-    // Validate Resume
-    if (!resumeUrl) {
-      errors.resume = 'Resume: Curriculum Vitae upload is mandatory for mentor review.'
     }
 
     if (Object.keys(errors).length > 0) {
@@ -1421,7 +1285,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                 <h1 className="mentor-title">Documents & Verification</h1>
               </div>
               <p className="mentor-subtitle">
-                To safeguard student safety and maintain educational excellence, all mentors must upload verification documents. All fields are mandatory.
+                Add your professional documents to support mentor verification. Work ID and resume uploads are optional.
               </p>
             </header>
 
@@ -1461,7 +1325,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                 <span className="field-hint">Public LinkedIn profile for verification of your professional experience</span>
               </div>
 
-              {/* 2. ID Card Upload (Mandatory) */}
+              {/* 2. ID Card Upload (Optional) */}
               <div
                 className={`form-field ${fieldErrors.idCard ? 'field-has-error' : ''}`}
                 id="mentor-id-card-section"
@@ -1469,9 +1333,9 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
               >
                 <div className="field-label-group">
                   <label className="field-label">
-                    <span>Work ID Card / Official Identification <span className="required-star">*</span></span>
+                    <span>Work ID Card / Official Identification <span className="optional-label">(Optional)</span></span>
                   </label>
-                  <span className="mandatory-badge">Mandatory Verification</span>
+                  <span className="optional-badge">Optional Document</span>
                 </div>
 
                 {fieldErrors.idCard && (
@@ -1512,7 +1376,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                     </div>
 
                     <p className="dropzone-primary-text">Upload Work ID Card or Official Government ID</p>
-                    <p className="dropzone-secondary-text">Supported: JPG, PNG, PDF (Max 100KB)</p>
+                    <p className="dropzone-secondary-text">Supported: JPG, PNG, PDF (Max {MAX_DOCUMENT_SIZE_LABEL})</p>
 
                     <div className="dropzone-buttons-row">
                       <label
@@ -1520,6 +1384,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                         className="dropzone-action-btn primary"
                         id="mentor-browse-id-btn"
                         style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -1534,6 +1399,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                         className="dropzone-action-btn"
                         id="mentor-camera-id-btn"
                         style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
@@ -1563,7 +1429,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                         </span>
                         {idCardFileSize && (
                           <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>
-                            {idCardFileSize} • Max 100KB verified
+                            {idCardFileSize} • Compressed for verification
                           </span>
                         )}
                       </div>
@@ -1588,7 +1454,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                 )}
               </div>
 
-              {/* 3. Resume Upload (Mandatory) */}
+              {/* 3. Resume Upload (Optional) */}
               <div
                 className={`form-field ${fieldErrors.resume ? 'field-has-error' : ''}`}
                 id="mentor-resume-section"
@@ -1596,9 +1462,9 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
               >
                 <div className="field-label-group">
                   <label className="field-label">
-                    <span>Resume / Curriculum Vitae <span className="required-star">*</span></span>
+                    <span>Resume / Curriculum Vitae <span className="optional-label">(Optional)</span></span>
                   </label>
-                  <span className="mandatory-badge">Mandatory Document</span>
+                  <span className="optional-badge">Optional Document</span>
                 </div>
 
                 {fieldErrors.resume && (
@@ -1629,7 +1495,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                     </div>
 
                     <p className="dropzone-primary-text">Click to Browse and Upload Resume</p>
-                    <p className="dropzone-secondary-text">PDF or DOC format (Max 100KB)</p>
+                    <p className="dropzone-secondary-text">PDF or DOC format (Max {MAX_DOCUMENT_SIZE_LABEL})</p>
                   </label>
                 ) : (
                   <div className="mentor-resume-attached-box">
@@ -1644,7 +1510,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                       </div>
                       <div>
                         <p className="resume-name-text">{resumeFileName || 'mentor-resume.pdf'}</p>
-                        <p className="resume-size-text">{resumeFileSize ? `${resumeFileSize} • Max 100KB verified` : 'Resume attached'}</p>
+                        <p className="resume-size-text">{resumeFileSize ? `${resumeFileSize} • Max ${MAX_DOCUMENT_SIZE_LABEL} verified` : 'Resume attached'}</p>
                       </div>
                     </div>
 

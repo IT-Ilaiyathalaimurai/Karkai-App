@@ -10,6 +10,18 @@ import {
   clearActiveOnboardingRole,
 } from '../../lib/onboarding-persistence'
 
+const MAX_STUDENT_DOCUMENT_SIZE_BYTES = 100 * 1024
+const MAX_STUDENT_DOCUMENT_SIZE_LABEL = '100KB'
+
+function readStudentFile(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+    reader.onerror = () => resolve('')
+    reader.readAsDataURL(file)
+  })
+}
+
 export interface ParentConsentData {
   parentName: string
   relationship: 'father' | 'mother' | 'guardian'
@@ -763,34 +775,36 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
     }
   }
 
-  const processSelectedFile = (file: File) => {
-    if (file.size > 10 * 1024 * 1024) {
-      setErrorMessage('File size is too large (maximum 10MB). Please choose a smaller image.')
-      return
-    }
-
+  const processSelectedFile = async (file: File) => {
     const isPdfFile = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
     setIsPdf(isPdfFile)
-    setIdCardFileName(file.name)
-    setErrorMessage(null)
 
     if (isPdfFile) {
+      if (file.size > MAX_STUDENT_DOCUMENT_SIZE_BYTES) {
+        setErrorMessage(`Your file is too large (${Math.round(file.size / 1024)}KB). Please choose a file <= ${MAX_STUDENT_DOCUMENT_SIZE_LABEL}.`)
+        return
+      }
       setErrorMessage(
         'PDF files cannot be scanned for Date of Birth automatically. Please take a clear photo or upload an image (.jpg, .jpeg, .png) of the ID card side showing your Date of Birth.'
       )
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const result = event.target?.result as string
-      setIdCardPhotoUrl(result)
-      runOcrExtraction(result)
+    if (file.size > MAX_STUDENT_DOCUMENT_SIZE_BYTES) {
+      setErrorMessage(`Your file is too large (${Math.round(file.size / 1024)}KB). Please choose a file <= ${MAX_STUDENT_DOCUMENT_SIZE_LABEL}.`)
+      return
     }
-    reader.onerror = () => {
-      setErrorMessage('Could not read the selected image file. Please try another format.')
+
+    const dataUrl = await readStudentFile(file)
+    if (!dataUrl) {
+      setErrorMessage('Could not read the selected file. Please try another file.')
+      return
     }
-    reader.readAsDataURL(file)
+
+    setIdCardFileName(file.name)
+    setErrorMessage(null)
+    setIdCardPhotoUrl(dataUrl)
+    runOcrExtraction(dataUrl)
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -798,6 +812,7 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
     if (file) {
       processSelectedFile(file)
     }
+    e.target.value = ''
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -932,9 +947,9 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
   const handleResumeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 100 * 1024) {
-        const sizeKb = (file.size / 1024).toFixed(1)
-        setErrorMessage(`Resume file is too large (${sizeKb}KB). Maximum allowed file size is 100KB.`)
+      if (file.size > MAX_STUDENT_DOCUMENT_SIZE_BYTES) {
+        const sizeKb = Math.round(file.size / 1024)
+        setErrorMessage(`Your file is too large (${sizeKb}KB). Please choose a file <= ${MAX_STUDENT_DOCUMENT_SIZE_LABEL}.`)
         if (resumeInputRef.current) resumeInputRef.current.value = ''
         return
       }
@@ -948,6 +963,7 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
       }
       reader.readAsDataURL(file)
     }
+    e.target.value = ''
   }
 
   const handleRemoveResume = () => {
@@ -1322,7 +1338,7 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
         ref={fileInputRef}
         type="file"
         id="student-id-file-input"
-        accept="image/*,.png,.jpg,.jpeg,.webp"
+        accept="image/*,.png,.jpg,.jpeg,.webp,.heic,.heif"
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
@@ -1339,7 +1355,7 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
         ref={resumeInputRef}
         type="file"
         id="student-resume-file-input"
-        accept=".pdf,.doc,.docx"
+        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         style={{ display: 'none' }}
         onChange={handleResumeFileChange}
       />
@@ -3086,7 +3102,7 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
               <div className="form-field">
                 <label className="field-label">
                   <span>Resume / Curriculum Vitae</span>
-                  <span style={{ fontSize: '12px', color: '#64748b' }}>Optional (.pdf, .doc, max 100KB)</span>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>Optional (.pdf, .doc, max {MAX_STUDENT_DOCUMENT_SIZE_LABEL})</span>
                 </label>
 
                 {!resumeFileName ? (
@@ -3100,10 +3116,10 @@ export const StudentOnboarding: React.FC<StudentOnboardingProps> = ({
                       </svg>
                     </div>
                     <p style={{ margin: '0 0 4px 0', fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>
-                      Click to Browse Resume (PDF / DOC, max 100KB)
+                      Click to Browse Resume (PDF / DOC, max {MAX_STUDENT_DOCUMENT_SIZE_LABEL})
                     </p>
                     <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
-                      Maximum file size: 100KB. Mentors can review your projects and experience.
+                      Maximum file size: {MAX_STUDENT_DOCUMENT_SIZE_LABEL}. Mentors can review your projects and experience.
                     </p>
                   </div>
                 ) : (

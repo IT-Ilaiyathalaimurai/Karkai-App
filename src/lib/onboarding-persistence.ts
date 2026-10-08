@@ -70,6 +70,7 @@ export interface MentorDraftData {
   linkedinUrl: string
   idCardPhotoUrl: string | null
   idCardFileName: string
+  idCardFileSize?: string
   resumeUrl: string | null
   resumeFileName: string
   resumeFileSize: string

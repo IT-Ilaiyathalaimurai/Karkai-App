@@ -22,10 +22,7 @@ import {
   clearMentorDraft,
 } from './lib/onboarding-persistence'
 import { TermsConditions } from './components/Terms-Conditions'
-import heroImg from './assets/hero.png'
 import logoImg from './assets/Karkai_Logo.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
 
 type AppView =
@@ -594,9 +591,7 @@ function App() {
 
       <section id="center">
         <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+          <img src={logoImg} className="base" width="170" height="179" alt="Karkai Logo" style={{ objectFit: 'contain' }} />
         </div>
         <div>
           <h1>Welcome, {studentData?.fullName || currentUser?.name || 'Learner'}!</h1>

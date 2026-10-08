@@ -53,6 +53,70 @@ export const POPULAR_SOFT_SKILLS = [
   'Networking & Professional Growth',
 ]
 
+/**
+ * Downscale and compress large mobile camera photos (e.g. Android 10MP-50MP camera photos)
+ * so they don't crash mobile browser memory limits while preserving high readability for verification.
+ */
+function compressImageForMobile(file: File): Promise<{ dataUrl: string; name: string }> {
+  return new Promise((resolve) => {
+    // If < 1MB, direct read
+    if (file.size < 1024 * 1024) {
+      const reader = new FileReader()
+      reader.onload = () => resolve({ dataUrl: reader.result as string, name: file.name })
+      reader.onerror = () => resolve({ dataUrl: '', name: file.name })
+      reader.readAsDataURL(file)
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const srcUrl = e.target?.result as string
+      if (!srcUrl) {
+        resolve({ dataUrl: '', name: file.name })
+        return
+      }
+
+      const img = new Image()
+      img.onload = () => {
+        try {
+          const maxDim = 1920
+          let width = img.width
+          let height = img.height
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width)
+              width = maxDim
+            } else {
+              width = Math.round((width * maxDim) / height)
+              height = maxDim
+            }
+          }
+
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            resolve({ dataUrl: srcUrl, name: file.name })
+            return
+          }
+
+          ctx.drawImage(img, 0, 0, width, height)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.82)
+          resolve({ dataUrl, name: file.name.replace(/\.[^/.]+$/, '.jpg') })
+        } catch {
+          resolve({ dataUrl: srcUrl, name: file.name })
+        }
+      }
+      img.onerror = () => resolve({ dataUrl: srcUrl, name: file.name })
+      img.src = srcUrl
+    }
+    reader.onerror = () => resolve({ dataUrl: '', name: file.name })
+    reader.readAsDataURL(file)
+  })
+}
+
 export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
   user,
   onBackToRoles,
@@ -339,37 +403,119 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
   // ---------------------------------------------------------------------------
   // STEP 3 HANDLERS (DOCUMENTS UPLOAD)
   // ---------------------------------------------------------------------------
-  const handleIdCardFileSelect = (file: File) => {
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      setFieldErrors((prev) => ({ ...prev, idCard: 'ID Card: Please upload an image file (JPG, PNG) or PDF of your ID card.' }))
-      return
+  const openIdFilePicker = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
     }
-    if (file.size > 8 * 1024 * 1024) {
-      setFieldErrors((prev) => ({ ...prev, idCard: 'ID Card: File is too large. Maximum file size is 8MB.' }))
-      return
+    if (idFileInputRef.current) {
+      idFileInputRef.current.value = ''
+      idFileInputRef.current.click()
     }
-
-    setIdCardFileName(file.name)
-    const reader = new FileReader()
-    reader.onload = () => {
-      setIdCardPhotoUrl(reader.result as string)
-      clearFieldError('idCard')
-    }
-    reader.readAsDataURL(file)
   }
 
+  const openIdCameraPicker = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    if (idCameraInputRef.current) {
+      idCameraInputRef.current.value = ''
+      idCameraInputRef.current.click()
+    }
+  }
+
+  const openResumePicker = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    if (resumeInputRef.current) {
+      resumeInputRef.current.value = ''
+      resumeInputRef.current.click()
+    }
+  }
+
+  const handleIdCardFileSelect = async (file: File) => {
+    const fileName = (file.name || '').toLowerCase()
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.pdf', '.heic', '.heif']
+    const hasValidExtension = validExtensions.some((ext) => fileName.endsWith(ext))
+    const isImageOrPdfMime = Boolean(file.type && (file.type.startsWith('image/') || file.type === 'application/pdf'))
+
+    // Robust Android & mobile check: accept if either MIME or file extension matches
+    if (!isImageOrPdfMime && !hasValidExtension) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        idCard: 'ID Card: Please upload an image file (JPG, PNG, WebP) or PDF of your work identification.',
+      }))
+      return
+    }
+
+    // Allow up to 15MB for high-resolution mobile camera captures
+    if (file.size > 15 * 1024 * 1024) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        idCard: 'ID Card: File is too large. Maximum file size is 15MB.',
+      }))
+      return
+    }
+
+    try {
+      const isPdf = file.type === 'application/pdf' || fileName.endsWith('.pdf')
+
+      if (!isPdf && typeof window !== 'undefined') {
+        const compressed = await compressImageForMobile(file)
+        if (compressed.dataUrl) {
+          setIdCardFileName(compressed.name)
+          setIdCardPhotoUrl(compressed.dataUrl)
+          clearFieldError('idCard')
+          return
+        }
+      }
+
+      // Fallback direct FileReader
+      const reader = new FileReader()
+      reader.onload = () => {
+        setIdCardFileName(file.name)
+        setIdCardPhotoUrl(reader.result as string)
+        clearFieldError('idCard')
+      }
+      reader.onerror = () => {
+        setFieldErrors((prev) => ({
+          ...prev,
+          idCard: 'ID Card: Could not read file. Please choose another photo or file from storage.',
+        }))
+      }
+      reader.readAsDataURL(file)
+    } catch {
+      const reader = new FileReader()
+      reader.onload = () => {
+        setIdCardFileName(file.name)
+        setIdCardPhotoUrl(reader.result as string)
+        clearFieldError('idCard')
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   const handleResumeFileSelect = (file: File) => {
+    const fileName = (file.name || '').toLowerCase()
     const validExts = ['.pdf', '.doc', '.docx']
-    const hasValidExt = validExts.some((ext) => file.name.toLowerCase().endsWith(ext))
+    const hasValidExt = validExts.some((ext) => fileName.endsWith(ext))
+    const isDocMime = Boolean(
+      file.type &&
+        (file.type === 'application/pdf' ||
+          file.type === 'application/msword' ||
+          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    )
 
-    if (!hasValidExt) {
+    if (!hasValidExt && !isDocMime) {
       setFieldErrors((prev) => ({ ...prev, resume: 'Resume: Please upload your resume in .pdf or .doc format.' }))
       return
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      setFieldErrors((prev) => ({ ...prev, resume: 'Resume: File is too large. Maximum file size is 2MB.' }))
+    if (file.size > 5 * 1024 * 1024) {
+      setFieldErrors((prev) => ({ ...prev, resume: 'Resume: File is too large. Maximum file size is 5MB.' }))
       return
     }
 
@@ -382,18 +528,24 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
       setResumeUrl(reader.result as string)
       clearFieldError('resume')
     }
+    reader.onerror = () => {
+      setFieldErrors((prev) => ({ ...prev, resume: 'Resume: Could not read file. Please try again.' }))
+    }
     reader.readAsDataURL(file)
   }
 
   const handleRemoveIdCard = () => {
     setIdCardPhotoUrl(null)
     setIdCardFileName('')
+    if (idFileInputRef.current) idFileInputRef.current.value = ''
+    if (idCameraInputRef.current) idCameraInputRef.current.value = ''
   }
 
   const handleRemoveResume = () => {
     setResumeUrl(null)
     setResumeFileName('')
     setResumeFileSize('')
+    if (resumeInputRef.current) resumeInputRef.current.value = ''
   }
 
   const handleFinalSubmit = async (e: React.FormEvent) => {
@@ -500,33 +652,42 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
 
   return (
     <div className="mentor-onboarding-wrapper">
-      {/* Hidden file inputs */}
+      {/* Hidden file inputs with mobile/Android compatibility */}
       <input
         ref={idFileInputRef}
         type="file"
-        accept="image/*,application/pdf"
+        id="mentor-id-file-input"
+        accept="image/*,.jpg,.jpeg,.png,.webp,.pdf,application/pdf"
         style={{ display: 'none' }}
         onChange={(e) => {
-          if (e.target.files?.[0]) handleIdCardFileSelect(e.target.files[0])
+          const file = e.target.files?.[0]
+          if (file) handleIdCardFileSelect(file)
+          e.target.value = ''
         }}
       />
       <input
         ref={idCameraInputRef}
         type="file"
-        accept="image/*"
+        id="mentor-id-camera-input"
+        accept="image/*,.jpg,.jpeg,.png,.webp"
         capture="environment"
         style={{ display: 'none' }}
         onChange={(e) => {
-          if (e.target.files?.[0]) handleIdCardFileSelect(e.target.files[0])
+          const file = e.target.files?.[0]
+          if (file) handleIdCardFileSelect(file)
+          e.target.value = ''
         }}
       />
       <input
         ref={resumeInputRef}
         type="file"
-        accept=".pdf,.doc,.docx,application/pdf,application/msword"
+        id="mentor-resume-file-input"
+        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         style={{ display: 'none' }}
         onChange={(e) => {
-          if (e.target.files?.[0]) handleResumeFileSelect(e.target.files[0])
+          const file = e.target.files?.[0]
+          if (file) handleResumeFileSelect(file)
+          e.target.value = ''
         }}
       />
 
@@ -1237,6 +1398,8 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                 {!idCardPhotoUrl ? (
                   <div
                     className={`mentor-upload-dropzone ${fieldErrors.idCard ? 'has-error' : ''} ${isDraggingId ? 'dragging' : ''}`}
+                    onClick={openIdFilePicker}
+                    style={{ cursor: 'pointer' }}
                     onDragOver={(e) => {
                       e.preventDefault()
                       setIsDraggingId(true)
@@ -1259,13 +1422,13 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                     </div>
 
                     <p className="dropzone-primary-text">Upload Work ID Card or Official Government ID</p>
-                    <p className="dropzone-secondary-text">Supported: JPG, PNG, PDF (Max 8MB)</p>
+                    <p className="dropzone-secondary-text">Supported: JPG, PNG, PDF (Max 15MB)</p>
 
                     <div className="dropzone-buttons-row">
                       <button
                         type="button"
                         className="dropzone-action-btn primary"
-                        onClick={() => idFileInputRef.current?.click()}
+                        onClick={openIdFilePicker}
                         id="mentor-browse-id-btn"
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1279,7 +1442,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                       <button
                         type="button"
                         className="dropzone-action-btn"
-                        onClick={() => idCameraInputRef.current?.click()}
+                        onClick={openIdCameraPicker}
                         id="mentor-camera-id-btn"
                       >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1311,7 +1474,7 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                         <button
                           type="button"
                           className="preview-btn replace"
-                          onClick={() => idFileInputRef.current?.click()}
+                          onClick={openIdFilePicker}
                         >
                           Replace
                         </button>
@@ -1355,7 +1518,8 @@ export const MentorOnboarding: React.FC<MentorOnboardingProps> = ({
                 {!resumeUrl ? (
                   <div
                     className={`mentor-resume-dropzone ${fieldErrors.resume ? 'has-error' : ''}`}
-                    onClick={() => resumeInputRef.current?.click()}
+                    onClick={openResumePicker}
+                    style={{ cursor: 'pointer' }}
                     id="mentor-browse-resume-card"
                   >
                     <div className="upload-circle-icon">
